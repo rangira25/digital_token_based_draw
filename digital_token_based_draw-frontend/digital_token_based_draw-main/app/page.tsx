@@ -224,8 +224,8 @@ export default function Home() {
       </header>
 
       {/* ── Hero ── */}
-      <section id="for-hosts" className="relative overflow-hidden bg-[#101820]">
-        {/* Background video — raffle / digital-draw loop, shown in original color */}
+      <section id="for-hosts" className="relative overflow-hidden bg-slate-200">
+        {/* Background video — casino play loop */}
         <div className="absolute inset-0">
           <video
             autoPlay
@@ -236,10 +236,10 @@ export default function Home() {
             className="h-full w-full object-cover"
             poster="/placeholder-logo.svg"
           >
-            <source src="/raffle-money.mp4" type="video/mp4" />
+            <source src="/casino-people.mp4" type="video/mp4" />
           </video>
-          {/* Neutral dark overlay keeps white text readable without tinting the video green */}
-          <div className="absolute inset-0 bg-black/35" />
+          {/* Soft neutral overlay keeps white text readable while letting the video show through */}
+          <div className="absolute inset-0 bg-slate-500/35" />
           <div className="absolute right-0 top-1/4 w-[600px] h-[600px] rounded-full bg-white/5 blur-3xl" />
         </div>
 
@@ -413,12 +413,12 @@ export default function Home() {
       </section>
 
       {/* ── Stats ── */}
-      <section className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8 bg-[#101820] text-white">
+      <section className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8 bg-slate-200 text-white">
         <div className="absolute inset-0">
           <video autoPlay muted loop playsInline disablePictureInPicture className="h-full w-full object-cover" poster="/placeholder-logo.svg">
-            <source src="/raffle-money.mp4" type="video/mp4" />
+            <source src="/casino-people.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-black/55" />
+          <div className="absolute inset-0 bg-slate-500/45" />
         </div>
         <div ref={statsRef} className="relative max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {stats.map(s => (
