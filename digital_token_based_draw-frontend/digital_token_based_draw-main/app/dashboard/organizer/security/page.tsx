@@ -1,7 +1,9 @@
 'use client';
 import { useState, useMemo, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Pagination } from '@/components/Pagination';
 import { api, apiUrls } from '@/lib/api';
+import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { IconSettings, IconArrowRight, IconX, IconStar, IconAlertTriangle, IconRefresh, IconShield, IconKey, IconUsers, IconClipboardList, IconAlertHexagon, IconCheck } from '@tabler/icons-react';
 import { Sidebar } from '@/components/Navigation/Sidebar';
 
@@ -225,14 +227,33 @@ export default function SecurityAuditModule() {
     return groups;
   }, [auditLogs]);
 
+  const AUDIT_EXPORT_COLUMNS: ExportColumn[] = [
+    { header: 'ID', key: 'id' },
+    { header: 'Timestamp', key: 'ts' },
+    { header: 'User', key: 'user' },
+    { header: 'Role', key: 'role' },
+    { header: 'Action', key: 'action' },
+    { header: 'Resource', key: 'resource' },
+    { header: 'Detail', key: 'detail' },
+    { header: 'Severity', key: 'severity' },
+    { header: 'IP', key: 'ip' },
+  ];
+
   const handleExport = (fmt: string) => {
-    if (fmt === "CSV") {
-      const header = "ID,Timestamp,User,Role,Action,Resource,Detail,Severity,IP\n";
-      const rows   = filtered.map(l => `${l.id},"${l.ts}","${l.user}","${l.role}","${l.action}","${l.resource}","${l.detail}","${l.severity}","${l.ip}"`).join("\n");
-      const blob   = new Blob([header + rows], { type: "text/csv" });
-      const a      = document.createElement("a");
-      a.href       = URL.createObjectURL(blob);
-      a.download   = "audit-trail.csv";
+    if (fmt === "PDF") {
+      exportPDF({
+        filename: 'audit-trail',
+        title: 'Security & Audit Trail',
+        subtitle: `${filtered.length} records`,
+        columns: AUDIT_EXPORT_COLUMNS,
+        data: filtered,
+      });
+    } else if (fmt === "Excel") {
+      exportExcel(filtered, AUDIT_EXPORT_COLUMNS, 'audit-trail', 'Audit Trail');
+    } else if (fmt === "JSON") {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" }));
+      a.download = "audit-trail.json";
       a.click();
     }
     setExportMsg(`Exported ${filtered.length} records as ${fmt}`);
@@ -247,36 +268,44 @@ export default function SecurityAuditModule() {
           <div className="p-8 font-sans">
 
         {/* Header */}
-        <div className="mb-7 flex items-end justify-between">
-          <div>
-            <div className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase mb-1.5">
-              System Module / Security
-            </div>
-            <h1 className="font-mono text-2xl font-bold text-foreground tracking-tight">
-              Security &amp; Audit
-            </h1>
+        <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }}
+          className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6 mb-7">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+            <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/10 blur-3xl" />
+            <div className="absolute bottom-0 left-1/3 w-40 h-40 rounded-full bg-primary/5 blur-2xl" />
           </div>
-          <div className="flex gap-5">
-            {[
-              { label: "Critical Alerts", val: ANOMALIES.filter(a => a.severity === "critical" && !a.resolved).length, colorClass: "text-red-500" },
-              { label: "Open Anomalies",  val: ANOMALIES.filter(a => !a.resolved).length,                              colorClass: "text-amber-500" },
-              { label: "Log Entries",     val: auditLogs.length,                                                      colorClass: "text-primary" },
-            ].map(s => (
-              <div key={s.label} className="text-right">
-                <div className={`font-mono text-2xl font-bold ${s.colorClass}`}>{s.val}</div>
-                <div className="text-[10px] text-muted-foreground font-mono">{s.label}</div>
+          <div className="relative flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <div className="flex items-center gap-2 font-mono text-[10px] text-primary tracking-widest uppercase mb-2">
+                <IconShield size={14} stroke={2} /> System Module / Security
               </div>
-            ))}
+              <h1 className="font-mono text-2xl font-bold text-foreground tracking-tight">
+                Security &amp; Audit
+              </h1>
+              <p className="text-xs text-muted-foreground mt-1">Immutable audit trail, anomaly detection &amp; access control.</p>
+            </div>
+            <div className="flex gap-6">
+              {[
+                { label: "Critical Alerts", val: ANOMALIES.filter(a => a.severity === "critical" && !a.resolved).length, colorClass: "text-red-500" },
+                { label: "Open Anomalies",  val: ANOMALIES.filter(a => !a.resolved).length,                              colorClass: "text-amber-500" },
+                { label: "Log Entries",     val: auditLogs.length,                                                      colorClass: "text-primary" },
+              ].map(s => (
+                <div key={s.label} className="text-right">
+                  <div className={`font-mono text-2xl font-bold ${s.colorClass}`}>{s.val}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">{s.label}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Tabs */}
         <div className="flex gap-0.5 mb-6 border-b border-border">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wider rounded-t -mb-px transition-all cursor-pointer ${
+            <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex items-center gap-1.5 px-4 py-2 text-xs font-mono tracking-wider rounded-t -mb-px transition-all cursor-pointer active:scale-95 ${
               activeTab === t.id
                 ? "bg-muted border border-border border-b-muted text-foreground"
-                : "bg-transparent border border-transparent text-muted-foreground hover:text-foreground"
+                : "bg-transparent border border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
             }`}>
               <span className="opacity-70">{(() => { const Ic = actionIconMap[t.icon]; return Ic ? <Ic size={14} stroke={1.5} /> : null; })()}</span>{t.label}
             </button>
@@ -298,8 +327,8 @@ export default function SecurityAuditModule() {
                 {roles.map(r      => <option key={r}>{r}</option>)}
               </select>
               <div className="flex-1" />
-              {["CSV", "JSON", "PDF"].map(fmt => (
-                <button key={fmt} onClick={() => handleExport(fmt)} className="bg-muted border border-border text-muted-foreground hover:text-foreground hover:border-primary px-3 py-1.5 text-[10px] font-mono tracking-widest rounded cursor-pointer transition-colors">
+              {["Excel", "PDF", "JSON"].map(fmt => (
+                <button key={fmt} onClick={() => handleExport(fmt)} className="bg-[#3BB82E]/10 border border-[#3BB82E]/30 text-[#288C1D] hover:bg-[#3BB82E]/20 hover:border-[#3BB82E]/50 px-3 py-1.5 text-[10px] font-mono tracking-widest rounded cursor-pointer transition-all active:scale-95 flex items-center gap-1">
                   &#8595; {fmt}
                 </button>
               ))}
@@ -311,7 +340,7 @@ export default function SecurityAuditModule() {
               </div>
             )}
 
-            <div className="border border-border rounded overflow-hidden">
+            <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
               {auditLoading ? (
                 <div className="p-12 text-center">
                   <div className="font-mono text-sm text-muted-foreground opacity-70">Loading audit logs\u2026</div>
@@ -319,9 +348,9 @@ export default function SecurityAuditModule() {
               ) : (
               <table className="w-full border-collapse text-xs font-mono">
                 <thead>
-                  <tr className="bg-muted border-b border-border">
+                  <tr className="bg-muted/60 border-b border-border text-primary/80">
                     {["ID", "Timestamp", "User", "Role", "Action", "Resource", "Detail", "Severity", "IP"].map(h => (
-                      <th key={h} className="px-3 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-muted-foreground whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-3 py-3 text-left text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -329,22 +358,32 @@ export default function SecurityAuditModule() {
                   {paginated.map((l, i) => {
                     const s = getSeverityStyle(l.severity);
                     return (
-                      <tr key={l.id} className={`border-b border-border ${i % 2 === 0 ? "bg-card" : "bg-transparent"} border-l-2 ${s.borderLeft}`}>
-                        <td className="px-3 py-2 text-muted-foreground text-[10px]">{l.id}</td>
-                        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{l.ts}</td>
-                        <td className="px-3 py-2 text-foreground">{l.user}</td>
-                        <td className="px-3 py-2 text-muted-foreground capitalize">{l.role}</td>
-                        <td className="px-3 py-2">
-                          <span className="flex items-center gap-1 text-primary">
-                            <span className="opacity-70">{(() => { const Ic = getActionIconComponent(l.action); return Ic ? <Ic size={14} stroke={1.5} /> : null; })()}</span>
-                            <span className="text-[10px]">{l.action}</span>
+                      <motion.tr key={l.id}
+                        initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.02 }}
+                        className={`border-b border-border ${i % 2 === 0 ? "bg-transparent" : "bg-muted/20"} hover:bg-primary/[0.04] transition-colors`}>
+                        <td className="px-3 py-3">
+                          <span className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${s.dot} ${s.glow} shrink-0`} />
+                            <span className={`${s.text} font-bold`}>{l.id}</span>
                           </span>
                         </td>
-                        <td className="px-3 py-2 text-foreground">{l.resource}</td>
-                        <td className="px-3 py-2 text-muted-foreground max-w-[240px] truncate">{l.detail}</td>
-                        <td className="px-3 py-2"><Tag severity={l.severity} /></td>
-                        <td className="px-3 py-2 text-muted-foreground">{l.ip}</td>
-                      </tr>
+                        <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{l.ts}</td>
+                        <td className="px-3 py-3 text-foreground">{l.user}</td>
+                        <td className="px-3 py-3">
+                          <span className={`text-muted-foreground capitalize ${l.role === "admin" ? "text-amber-600 font-semibold" : l.role === "organizer" ? "text-primary font-semibold" : ""}`}>{l.role}</span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/5 border border-primary/10 text-primary text-[10px]">
+                            <span className="opacity-80">{(() => { const Ic = getActionIconComponent(l.action); return Ic ? <Ic size={13} stroke={1.5} /> : null; })()}</span>
+                            {l.action}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-foreground">{l.resource}</td>
+                        <td className="px-3 py-3 text-muted-foreground max-w-[240px] truncate">{l.detail}</td>
+                        <td className="px-3 py-3"><Tag severity={l.severity} /></td>
+                        <td className="px-3 py-3 text-muted-foreground">{l.ip}</td>
+                      </motion.tr>
                     );
                   })}
                   {filtered.length === 0 && (
@@ -366,7 +405,7 @@ export default function SecurityAuditModule() {
               {paginatedAnomalies.map(a => {
                 const s = getSeverityStyle(a.severity);
                 return (
-                  <div key={a.id} className={`rounded px-4 py-3.5 flex items-start gap-4 ${a.resolved ? "bg-card border border-border opacity-50" : `${s.bg} border ${s.border}`}`}>
+                  <div key={a.id} className={`rounded px-4 py-3.5 flex items-start gap-4 ${a.resolved ? "bg-card border border-border opacity-50" : `${s.bg} border ${s.border} ${s.shadow}`}`}>
                     <div className={`mt-[3px] w-2 h-2 rounded-full shrink-0 ${a.resolved ? "bg-muted-foreground" : `${s.dot} ${s.glow}`}`} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2.5 mb-1">
@@ -378,7 +417,7 @@ export default function SecurityAuditModule() {
                       <div className="text-[10px] text-muted-foreground opacity-60">{a.ts} \u00b7 {a.id}</div>
                     </div>
                     {!a.resolved && (
-                      <button className={`border ${s.border} ${s.text} bg-transparent px-3 py-1 text-[10px] rounded font-mono shrink-0 cursor-pointer`}>
+                      <button className={`border ${s.border} ${s.text} bg-transparent px-3 py-1 text-[10px] rounded font-mono shrink-0 cursor-pointer transition-colors hover:bg-primary/5 active:scale-95 active:bg-primary/10`}>
                         Investigate &rarr;
                       </button>
                     )}

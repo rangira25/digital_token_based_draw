@@ -204,6 +204,7 @@ declare module '@tabler/icons-react' {
   export const IconChartArea: IconComponent;
   export const IconTrendingUp: IconComponent;
   export const IconTrendingDown: IconComponent;
+  export const IconMenu: IconComponent;
   export const IconMenu2: IconComponent;
   export const IconFileSpreadsheet: IconComponent;
   export const IconFileTypePdf: IconComponent;
@@ -241,4 +242,7 @@ declare module '@tabler/icons-react' {
   export const IconArrowsDoubleNeSw: IconComponent;
   export const IconArrowsLeft: IconComponent;
   export const IconArrowsRight: IconComponent;
+  export const IconBroadcast: IconComponent;
+  export const IconHeartHandshake: IconComponent;
+  export const IconPigMoney: IconComponent;
 }

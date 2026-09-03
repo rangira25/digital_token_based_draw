@@ -74,7 +74,7 @@ export default function DrawDetailPage() {
   };
 
   const statusColor = (s: string) => {
-    if (s === 'open') return 'bg-slate-800 text-white';
+    if (s === 'open') return 'bg-[#3BB82E] text-white';
     if (s === 'completed') return 'bg-primary/20 text-primary';
     if (s === 'draft') return 'bg-muted text-muted-foreground';
     if (s === 'closed') return 'bg-yellow-500/20 text-yellow-600';
@@ -124,21 +124,58 @@ export default function DrawDetailPage() {
     <div className="flex h-screen bg-background">
       <Sidebar />
       <main className="flex-1 ml-64 overflow-y-auto">
-        <div className="p-8 max-w-4xl">
+        <div className="relative p-8 max-w-4xl">
+
+          {/* Background video */}
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
+            <video
+              src="/hero-money.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover opacity-[0.08]"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.06] via-background/60 to-background" />
+          </div>
+
           {/* Header */}
           <div className="mb-6">
             <button onClick={() => router.push('/dashboard/organizer/draws')}
-              className="text-sm text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1">
+              className="text-sm text-muted-foreground hover:text-foreground mb-3 flex items-center gap-1 transition-colors">
               <IconArrowLeft size={14} /> Back to Draws
             </button>
-            <div className="flex items-start justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">{draw?.title}</h1>
-                <p className="text-sm text-muted-foreground mt-1">{draw?.description}</p>
+            <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6">
+              <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+                <video
+                  src="/hero-money.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover opacity-[0.12]"
+                />
+                <div className="absolute inset-0 bg-white/40 dark:bg-black/40" />
+                <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-primary/10 blur-3xl" />
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusColor(draw?.status || 'draft')}`}>
-                {(draw?.status || 'draft').charAt(0).toUpperCase() + (draw?.status || 'draft').slice(1)}
-              </span>
+              <div className="relative flex items-start justify-between gap-4 flex-wrap">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#3BB82E]/10 border border-[#3BB82E]/30 text-[#288C1D] text-[10px] font-semibold uppercase tracking-wider">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3BB82E] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3BB82E]" />
+                      </span>
+                      Live Draw
+                    </span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusColor(draw?.status || 'draft')}`}>
+                      {(draw?.status || 'draft').charAt(0).toUpperCase() + (draw?.status || 'draft').slice(1)}
+                    </span>
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">{draw?.title}</h1>
+                  <p className="text-sm text-muted-foreground">{draw?.description}</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -151,12 +188,13 @@ export default function DrawDetailPage() {
           {/* Info Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
-              { label: 'Entries', value: draw?.entry_count || 0 },
-              { label: 'Max Participants', value: draw?.max_participants || 'Unlimited' },
-              { label: 'Winners', value: draw?.winners_count || 1 },
-              { label: 'Tokens/Entry', value: draw?.tokens_per_entry || 1 },
+              { label: 'Entries', value: draw?.entry_count || 0, accent: '#3BB82E' },
+              { label: 'Max Participants', value: draw?.max_participants || 'Unlimited', accent: '#3BB82E' },
+              { label: 'Winners', value: draw?.winners_count || 1, accent: '#f5c200' },
+              { label: 'Tokens/Entry', value: draw?.tokens_per_entry || 1, accent: '#3BB82E' },
             ].map(card => (
-              <div key={card.label} className="bg-card border border-primary/20 rounded-lg p-4">
+              <div key={card.label} className="relative overflow-hidden bg-card border border-primary/20 rounded-lg p-4">
+                <span className="absolute top-0 left-0 right-0 h-1" style={{ background: card.accent }} />
                 <p className="text-xs text-muted-foreground mb-1">{card.label}</p>
                 <p className="text-xl font-bold text-foreground">{card.value}</p>
               </div>
@@ -214,7 +252,7 @@ export default function DrawDetailPage() {
                 <Button
                   onClick={() => handleStatusChange(nextStatus(draw!.status)!)}
                   disabled={updating}
-                  className="bg-slate-800 text-white hover:bg-slate-700"
+                  className="bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95"
                 >
                   {draw?.status === 'draft' && <IconPlayerPlay size={16} className="mr-2" />}
                   {draw?.status === 'open' && <IconPlayerStop size={16} className="mr-2" />}

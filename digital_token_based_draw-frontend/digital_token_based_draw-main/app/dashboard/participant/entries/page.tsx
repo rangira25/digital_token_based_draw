@@ -54,8 +54,8 @@ export default function EntriesPage() {
 
   const statsCards = [
     { label: 'Total Entries', value: entries.length, color: 'text-slate-700' },
-    { label: 'Active Draws', value: entries.filter(e => e.status === 'active').length, color: 'text-primary' },
-    { label: 'Tokens', value: entries.reduce((sum: number, e: any) => sum + (e.tokens?.length || 0), 0), color: 'text-green-400' },
+    { label: 'Active Draws', value: entries.filter(e => e.status === 'active').length, color: 'text-[#3BB82E]' },
+    { label: 'Tokens', value: entries.reduce((sum: number, e: any) => sum + (e.tokens?.length || 0), 0), color: 'text-[#3BB82E]' },
     { label: 'Expired', value: entries.filter(e => e.status === 'expired').length, color: 'text-red-400' },
   ];
 
@@ -106,10 +106,10 @@ export default function EntriesPage() {
             <button
               key={f}
               onClick={() => { setFilter(f); setPage(1); }}
-              className={`px-4 py-2 rounded font-mono text-sm transition-all ${
+              className={`px-4 py-2 rounded font-mono text-sm transition-all active:scale-95 ${
                 filter === f
-                  ? 'bg-slate-900 text-white'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-[#3BB82E] text-white'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -130,7 +130,7 @@ export default function EntriesPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className={`bg-card border rounded-lg p-6 space-y-4 ${
+              className={`bg-card border rounded-lg p-6 space-y-4 transition-all duration-300 hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 ${
                 entry.status === 'active' 
                   ? 'border-slate-300' 
                   : 'border-primary/20'
@@ -190,7 +190,7 @@ export default function EntriesPage() {
                 <Button size="sm" variant="outline">View Draw</Button>
                 <Button size="sm" variant="outline">Token Details</Button>
                 {entry.status === 'active' && (
-                  <Button size="sm" className="ml-auto bg-slate-900 text-white hover:bg-slate-800">Verify Entry</Button>
+                  <Button size="sm" className="ml-auto bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95">Verify Entry</Button>
                 )}
               </div>
             </motion.div>
@@ -208,7 +208,7 @@ export default function EntriesPage() {
             className="text-center py-12 space-y-4"
           >
             <p className="text-muted-foreground text-lg">No {filter === 'all' ? '' : filter} entries found</p>
-            <Button onClick={() => router.push('/dashboard/participant/draws')} className="bg-slate-900 text-white hover:bg-slate-800">
+            <Button onClick={() => router.push('/dashboard/participant/draws')} className="bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95">
               Browse Available Draws
             </Button>
           </motion.div>

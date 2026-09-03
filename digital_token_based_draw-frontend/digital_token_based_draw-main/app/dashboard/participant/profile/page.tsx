@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, apiUrls } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
+import { Sidebar } from '@/components/Navigation/Sidebar';
 import { IconCheck, IconClock, IconUser, IconShield, IconPlus, IconCircleCheck, IconHourglass, IconX } from '@tabler/icons-react';
 
 interface ProfileData {
@@ -115,8 +116,11 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <p className="text-muted-foreground font-mono">Loading profile...</p>
+      <div className="flex h-screen bg-background">
+        <Sidebar />
+        <main className="flex-1 ml-64 flex items-center justify-center">
+          <p className="text-muted-foreground font-mono">Loading profile...</p>
+        </main>
       </div>
     );
   }
@@ -125,7 +129,9 @@ export default function ProfilePage() {
   const createdAt = profileData.created_at ? new Date(profileData.created_at) : new Date();
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      <main className="flex-1 ml-64 overflow-y-auto">
       <div className="p-8 space-y-8">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="space-y-2">
           <h1 className="text-4xl font-bold text-foreground">Profile & Verification</h1>
@@ -330,6 +336,7 @@ export default function ProfilePage() {
           </motion.div>
         )}
       </AnimatePresence>
+      </main>
     </div>
   );
 }

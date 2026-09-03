@@ -6,124 +6,43 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { api, apiUrls } from '@/lib/api';
+import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { Sidebar } from '@/components/Navigation/Sidebar';
 import { IconTrendingUp, IconAlertTriangle, IconEye, IconX, IconCheck } from '@tabler/icons-react';
 
-// ─── Data by Time Range (makes the filter actually functional) ─────────────
-const analyticsData = {
-  '24h': {
-    kpis: [
-      { label: 'Total Participants', value: '1,842', change: '+3.2%', trend: 'up' },
-      { label: 'Active Draws', value: '24', change: '+0%', trend: 'up' },
-      { label: 'Total Tokens', value: '18,420', change: '-0.8%', trend: 'down' },
-      { label: 'Avg Entries/Draw', value: '77', change: '+2.1%', trend: 'up' },
-      { label: 'Prize Claim Rate', value: '91.0%', change: '+1.2%', trend: 'up' },
-      { label: 'Revenue (Est.)', value: '$6,240', change: '+5.1%', trend: 'up' },
-    ],
-    participation: [
-      { label: '6am', value: 120 },
-      { label: '9am', value: 280 },
-      { label: '12pm', value: 450 },
-      { label: '3pm', value: 390 },
-      { label: '6pm', value: 510 },
-      { label: '9pm', value: 620 },
-      { label: '12am', value: 210 },
-    ],
-    entryVolume: [
-      { label: '6am', entries: 240, unique: 120 },
-      { label: '9am', entries: 560, unique: 280 },
-      { label: '12pm', entries: 900, unique: 450 },
-      { label: '3pm', entries: 780, unique: 390 },
-      { label: '6pm', entries: 1020, unique: 510 },
-      { label: '9pm', entries: 1240, unique: 620 },
-      { label: '12am', entries: 420, unique: 210 },
-    ],
-  },
-  '7d': {
-    kpis: [
-      { label: 'Total Participants', value: '12,450', change: '+8.5%', trend: 'up' },
-      { label: 'Active Draws', value: '24', change: '+12.3%', trend: 'up' },
-      { label: 'Total Tokens', value: '125,680', change: '-2.1%', trend: 'down' },
-      { label: 'Avg Entries/Draw', value: '520', change: '+5.2%', trend: 'up' },
-      { label: 'Prize Claim Rate', value: '94.2%', change: '+3.8%', trend: 'up' },
-      { label: 'Revenue (Est.)', value: '$45,320', change: '+18.6%', trend: 'up' },
-    ],
-    participation: [
-      { label: 'May 7', value: 850 },
-      { label: 'May 8', value: 920 },
-      { label: 'May 9', value: 1100 },
-      { label: 'May 10', value: 1450 },
-      { label: 'May 11', value: 1320 },
-      { label: 'May 12', value: 1680 },
-      { label: 'May 13', value: 1900 },
-    ],
-    entryVolume: [
-      { label: 'May 7', entries: 1700, unique: 850 },
-      { label: 'May 8', entries: 1840, unique: 920 },
-      { label: 'May 9', entries: 2200, unique: 1100 },
-      { label: 'May 10', entries: 2900, unique: 1450 },
-      { label: 'May 11', entries: 2640, unique: 1320 },
-      { label: 'May 12', entries: 3360, unique: 1680 },
-      { label: 'May 13', entries: 3800, unique: 1900 },
-    ],
-  },
-  '30d': {
-    kpis: [
-      { label: 'Total Participants', value: '48,920', change: '+22.1%', trend: 'up' },
-      { label: 'Active Draws', value: '89', change: '+34.0%', trend: 'up' },
-      { label: 'Total Tokens', value: '512,400', change: '+11.3%', trend: 'up' },
-      { label: 'Avg Entries/Draw', value: '549', change: '+9.8%', trend: 'up' },
-      { label: 'Prize Claim Rate', value: '92.8%', change: '+2.1%', trend: 'up' },
-      { label: 'Revenue (Est.)', value: '$182,600', change: '+28.4%', trend: 'up' },
-    ],
-    participation: [
-      { label: 'Apr 15', value: 1200 },
-      { label: 'Apr 19', value: 1580 },
-      { label: 'Apr 23', value: 1820 },
-      { label: 'Apr 27', value: 2100 },
-      { label: 'May 1', value: 1950 },
-      { label: 'May 5', value: 2380 },
-      { label: 'May 9', value: 2740 },
-    ],
-    entryVolume: [
-      { label: 'Apr 15', entries: 2400, unique: 1200 },
-      { label: 'Apr 19', entries: 3160, unique: 1580 },
-      { label: 'Apr 23', entries: 3640, unique: 1820 },
-      { label: 'Apr 27', entries: 4200, unique: 2100 },
-      { label: 'May 1', entries: 3900, unique: 1950 },
-      { label: 'May 5', entries: 4760, unique: 2380 },
-      { label: 'May 9', entries: 5480, unique: 2740 },
-    ],
-  },
-  '90d': {
-    kpis: [
-      { label: 'Total Participants', value: '142,300', change: '+45.2%', trend: 'up' },
-      { label: 'Active Draws', value: '247', change: '+61.8%', trend: 'up' },
-      { label: 'Total Tokens', value: '1,482,000', change: '+38.9%', trend: 'up' },
-      { label: 'Avg Entries/Draw', value: '576', change: '+18.3%', trend: 'up' },
-      { label: 'Prize Claim Rate', value: '91.4%', change: '-0.6%', trend: 'down' },
-      { label: 'Revenue (Est.)', value: '$528,400', change: '+52.1%', trend: 'up' },
-    ],
-    participation: [
-      { label: 'Feb', value: 12400 },
-      { label: 'Mar W1', value: 18200 },
-      { label: 'Mar W2', value: 22800 },
-      { label: 'Mar W3', value: 28400 },
-      { label: 'Apr W1', value: 34100 },
-      { label: 'Apr W2', value: 42600 },
-      { label: 'May', value: 48920 },
-    ],
-    entryVolume: [
-      { label: 'Feb', entries: 24800, unique: 12400 },
-      { label: 'Mar W1', entries: 36400, unique: 18200 },
-      { label: 'Mar W2', entries: 45600, unique: 22800 },
-      { label: 'Mar W3', entries: 56800, unique: 28400 },
-      { label: 'Apr W1', entries: 68200, unique: 34100 },
-      { label: 'Apr W2', entries: 85200, unique: 42600 },
-      { label: 'May', entries: 97840, unique: 48920 },
-    ],
-  },
-};
+// ─── Helper: format date labels ──────────────────────────────────────────────
+function fmtDay(d: string) {
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ─── Derive chart data from real API entry_trend ────────────────────────────
+function deriveChartData(
+  entryTrend: { day: string; entries: string; unique_participants: string }[],
+  timeRange: string,
+) {
+  if (!entryTrend || entryTrend.length === 0) return { participation: [], entryVolume: [] };
+  const now = Date.now();
+  const cutoffs: Record<string, number> = {
+    '24h': 7 * 86400000,
+    '7d': 7 * 86400000,
+    '30d': 30 * 86400000,
+    '90d': 30 * 86400000,
+  };
+  const ms = cutoffs[timeRange] ?? 30 * 86400000;
+  const filtered = entryTrend.filter(r => now - new Date(r.day).getTime() <= ms);
+
+  const participation = filtered.map(r => ({
+    label: fmtDay(r.day),
+    value: Number(r.entries),
+  }));
+  const entryVolume = filtered.map(r => ({
+    label: fmtDay(r.day),
+    entries: Number(r.entries),
+    unique: Number(r.unique_participants),
+  }));
+  return { participation, entryVolume };
+}
 
 const REPORT_METRICS = [
   { id: 'participation', label: 'Participation Trends' },
@@ -219,22 +138,66 @@ export default function AnalyticsPage() {
 
   // Merge real analytics data over mock defaults
   const mergedKpis = analyticsDataReal ? [
-    { label: 'Total Participants', value: String(analyticsDataReal.users?.total || analyticsDataReal.draws?.total_draws || '—'), change: '', trend: 'up' },
-    { label: 'Active Draws', value: String(analyticsDataReal.draws?.active_draws || '—'), change: '', trend: 'up' },
-    { label: 'Total Entries', value: String(analyticsDataReal.entries?.total_entries || '—'), change: '', trend: 'up' },
-    { label: 'Active Tokens', value: String(analyticsDataReal.tokens?.active_tokens || '—'), change: '', trend: 'up' },
-    { label: 'Total Users', value: String(analyticsDataReal.users?.total || '—'), change: '', trend: 'up' },
-    { label: 'Winners', value: String(analyticsDataReal.draws?.completed_draws || '—'), change: '', trend: 'up' },
-  ] : null;
+    { label: 'Total Draws', value: String(analyticsDataReal.draws?.total_draws || 0), change: '', trend: 'up' as const },
+    { label: 'Active Draws', value: String(analyticsDataReal.draws?.active_draws || 0), change: '', trend: 'up' as const },
+    { label: 'Total Entries', value: String(analyticsDataReal.entries?.total_entries || 0), change: '', trend: 'up' as const },
+    { label: 'Unique Participants', value: String(analyticsDataReal.entries?.unique_participants || 0), change: '', trend: 'up' as const },
+    { label: 'Active Tokens', value: String(analyticsDataReal.tokens?.active_tokens || 0), change: '', trend: 'up' as const },
+    { label: 'Winners', value: String(analyticsDataReal.winners?.total_winners || 0), change: '', trend: 'up' as const },
+  ] : [];
 
-  const currentData = mergedKpis ? { ...analyticsData[timeRange], kpis: mergedKpis } : analyticsData[timeRange];
-  const maxParticipation = Math.max(...currentData.participation.map(d => d.value));
-  const maxEntries = Math.max(...currentData.entryVolume.map(d => d.entries));
-  const peakDay = currentData.entryVolume.reduce((max, d) => d.entries > max.entries ? d : max);
-  const avgMultiplier = (
-    currentData.entryVolume.reduce((a, b) => a + b.entries, 0) /
-    currentData.entryVolume.reduce((a, b) => a + b.unique, 0)
-  ).toFixed(1);
+  // Derive chart data from real API entry_trend
+  const { participation, entryVolume } = deriveChartData(analyticsDataReal?.entry_trend || [], timeRange);
+  const currentData = {
+    kpis: mergedKpis.length > 0 ? mergedKpis : [
+      { label: 'Total Draws', value: '—', change: '', trend: 'up' as const },
+      { label: 'Active Draws', value: '—', change: '', trend: 'up' as const },
+      { label: 'Total Entries', value: '—', change: '', trend: 'up' as const },
+      { label: 'Unique Participants', value: '—', change: '', trend: 'up' as const },
+      { label: 'Active Tokens', value: '—', change: '', trend: 'up' as const },
+      { label: 'Winners', value: '—', change: '', trend: 'up' as const },
+    ],
+    participation,
+    entryVolume,
+  };
+  const maxParticipation = Math.max(...currentData.participation.map(d => d.value), 1);
+  const maxEntries = Math.max(...currentData.entryVolume.map(d => d.entries), 1);
+  const peakDay = currentData.entryVolume.length > 0
+    ? currentData.entryVolume.reduce((max, d) => d.entries > max.entries ? d : max)
+    : { label: '—', entries: 0, unique: 0 };
+  const avgMultiplier = currentData.entryVolume.length > 0
+    ? (
+        currentData.entryVolume.reduce((a, b) => a + b.entries, 0) /
+        Math.max(currentData.entryVolume.reduce((a, b) => a + b.unique, 0), 1)
+      ).toFixed(1)
+    : '0';
+
+  // Real top draws from API
+  const topDraws: { title: string; entry_count: number; max_participants: number | null; status: string }[] =
+    analyticsDataReal?.top_draws || [];
+
+  const handleReportExport = (fmt: 'pdf' | 'excel') => {
+    const base = `analytics-report-${Date.now()}`;
+    if (fmt === 'excel') {
+      exportExcel(currentData.entryVolume, [
+        { header: 'Time', key: 'label' },
+        { header: 'Entries', key: 'entries' },
+        { header: 'Unique Participants', key: 'unique' },
+      ], base, 'Entry Volume');
+    } else {
+      exportPDF({
+        filename: base,
+        title: 'Analytics Report',
+        subtitle: `Time range: ${timeRange} • Peak ${peakDay.label}: ${peakDay.entries} entries`,
+        columns: [
+          { header: 'Time', key: 'label' },
+          { header: 'Entries', key: 'entries' },
+          { header: 'Unique Participants', key: 'unique' },
+        ],
+        data: currentData.entryVolume,
+      });
+    }
+  };
 
   const toggleMetric = (id: string) => {
     setSelectedMetrics(prev =>
@@ -371,28 +334,35 @@ export default function AnalyticsPage() {
           <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-4">
             <h3 className="text-lg font-bold text-foreground">Top Draws by Participation</h3>
             <div className="space-y-4">
-              {[
-                { name: 'Summer Prize Draw', entries: 2840, fill: 95 },
-                { name: 'Tech Raffle', entries: 2120, fill: 71 },
-                { name: 'Community Giveaway', entries: 1950, fill: 65 },
-                { name: 'Spring Promotion', entries: 1680, fill: 56 },
-                { name: 'Monthly Raffle', entries: 1240, fill: 42 },
-              ].map((draw, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-foreground font-medium">{draw.name}</span>
-                    <span className="text-slate-700 font-mono">{draw.entries.toLocaleString()}</span>
+              {topDraws.length === 0 && (
+                <p className="text-sm text-muted-foreground">No draws with entries yet.</p>
+              )}
+              {topDraws.map((draw, idx) => {
+                const fill = draw.max_participants
+                  ? Math.min(100, Math.round((draw.entry_count / draw.max_participants) * 100))
+                  : 50;
+                return (
+                  <div key={idx} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-foreground font-medium">{draw.title}</span>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
+                          draw.status === 'completed' ? 'bg-green-500/20 text-green-600' : 'bg-blue-500/20 text-blue-600'
+                        }`}>{draw.status}</span>
+                        <span className="text-slate-700 font-mono">{draw.entry_count.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted rounded overflow-hidden">
+                      <motion.div
+                        className="h-full bg-primary/60 rounded"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${fill}%` }}
+                        transition={{ delay: idx * 0.08, duration: 0.5 }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 bg-muted rounded overflow-hidden">
-                    <motion.div
-                      className="h-full bg-slate-300 rounded"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${draw.fill}%` }}
-                      transition={{ delay: idx * 0.08, duration: 0.5 }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </motion.div>
@@ -476,38 +446,42 @@ export default function AnalyticsPage() {
           transition={{ delay: 0.3 }}
           className="grid lg:grid-cols-2 gap-6"
         >
-          {/* Winner Demographics (enhanced) */}
+          {/* Winner Demographics (derived from real data) */}
           <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-4">
-            <h3 className="text-lg font-bold text-foreground">Winner Demographics</h3>
+            <h3 className="text-lg font-bold text-foreground">Winner Stats</h3>
             <div className="space-y-3">
               {[
-                { label: 'Age 18-25', percentage: 22 },
-                { label: 'Age 26-35', percentage: 38 },
-                { label: 'Age 36-45', percentage: 28 },
-                { label: 'Age 46+', percentage: 12 },
+                { label: 'Total Winners', value: analyticsDataReal?.winners?.total_winners || 0 },
+                { label: 'Prizes Claimed', value: analyticsDataReal?.winners?.claimed_prizes || 0 },
+                { label: 'Pending Claims', value: analyticsDataReal?.winners?.pending_claims || 0 },
+                { label: 'Active Draws', value: analyticsDataReal?.draws?.active_draws || 0 },
               ].map((item, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-foreground">{item.label}</span>
-                    <span className="text-muted-foreground font-mono">{item.percentage}%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded overflow-hidden">
-                    <motion.div
-                      className="h-full bg-primary rounded"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${item.percentage}%` }}
-                      transition={{ delay: idx * 0.08, duration: 0.5 }}
-                    />
-                  </div>
+                <div key={idx} className="flex items-center justify-between p-3 bg-muted rounded">
+                  <span className="text-sm text-foreground">{item.label}</span>
+                  <span className="text-lg font-bold text-foreground">{item.value}</span>
                 </div>
               ))}
             </div>
             <div className="pt-3 border-t border-primary/10 grid grid-cols-2 gap-3">
               {[
-                { label: 'Male Winners', value: '54%' },
-                { label: 'Female Winners', value: '43%' },
-                { label: 'Top Region', value: 'West' },
-                { label: 'Repeat Winners', value: '18%' },
+                {
+                  label: 'Tokens Issued',
+                  value: String(analyticsDataReal?.tokens?.active_tokens || 0),
+                },
+                {
+                  label: 'Tokens Used',
+                  value: String(analyticsDataReal?.tokens?.used_tokens || 0),
+                },
+                {
+                  label: 'Total Tokens',
+                  value: String(analyticsDataReal?.tokens?.total_tokens || 0),
+                },
+                {
+                  label: 'Completion Rate',
+                  value: analyticsDataReal?.draws?.total_draws
+                    ? `${Math.round(((analyticsDataReal.draws.completed_draws || 0) / analyticsDataReal.draws.total_draws) * 100)}%`
+                    : '—',
+                },
               ].map((item, idx) => (
                 <div key={idx} className="p-3 bg-muted/50 rounded space-y-1">
                   <p className="text-xs text-muted-foreground font-mono">{item.label}</p>
@@ -520,39 +494,55 @@ export default function AnalyticsPage() {
           {/* Prize Claim Status */}
           <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-4">
             <h3 className="text-lg font-bold text-foreground">Prize Claim Status</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: 'Claimed', value: 2450, color: 'text-green-400' },
-                { label: 'Pending', value: 145, color: 'text-yellow-400' },
-                { label: 'Unclaimed', value: 32, color: 'text-red-400' },
-                { label: 'Expired', value: 8, color: 'text-gray-400' },
-              ].map((item, idx) => (
-                <div key={idx} className="p-4 bg-muted rounded space-y-2 text-center">
-                  <p className="text-sm text-muted-foreground">{item.label}</p>
-                  <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="pt-2 space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Overall Claim Rate</span>
-                <span className="font-mono text-foreground">94.2%</span>
-              </div>
-              <div className="h-3 bg-muted rounded overflow-hidden flex">
-                <div className="h-full bg-green-500/70 rounded-l" style={{ width: '94.2%' }} />
-                <div className="h-full bg-yellow-500/70" style={{ width: '2.6%' }} />
-                <div className="h-full bg-red-500/70" style={{ width: '1.2%' }} />
-                <div className="h-full bg-gray-500/70 rounded-r" style={{ width: '0.15%' }} />
-              </div>
-              <div className="flex gap-4 text-xs text-muted-foreground font-mono">
-                <span>Avg claim time: 2.4 days</span>
-                <span>Fastest: 8 min</span>
-              </div>
-            </div>
+            {(() => {
+              const w = analyticsDataReal?.winners || {};
+              const claimed = Number(w.claimed_prizes || 0);
+              const pending = Number(w.pending_claims || 0);
+              const total = Number(w.total_winners || 0);
+              const unclaimed = Math.max(0, total - claimed - pending);
+              const claimRate = total > 0 ? Math.round((claimed / total) * 1000) / 10 : 0;
+              return (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: 'Claimed', value: claimed, color: 'text-green-500' },
+                      { label: 'Pending', value: pending, color: 'text-yellow-500' },
+                      { label: 'Unclaimed', value: unclaimed, color: 'text-red-400' },
+                      { label: 'Total Winners', value: total, color: 'text-foreground' },
+                    ].map((item, idx) => (
+                      <div key={idx} className="p-4 bg-muted rounded space-y-2 text-center">
+                        <p className="text-sm text-muted-foreground">{item.label}</p>
+                        <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-2 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Overall Claim Rate</span>
+                      <span className="font-mono text-foreground">{claimRate}%</span>
+                    </div>
+                    <div className="h-3 bg-muted rounded overflow-hidden flex">
+                      <div
+                        className="h-full bg-green-500/70 rounded-l transition-all duration-500"
+                        style={{ width: `${total > 0 ? (claimed / total) * 100 : 0}%` }}
+                      />
+                      <div
+                        className="h-full bg-yellow-500/70 transition-all duration-500"
+                        style={{ width: `${total > 0 ? (pending / total) * 100 : 0}%` }}
+                      />
+                      <div
+                        className="h-full bg-red-400/70 rounded-r transition-all duration-500"
+                        style={{ width: `${total > 0 ? (unclaimed / total) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </motion.div>
 
-        {/* ── Organizer Performance Metrics (NEW) ────────────────────────── */}
+        {/* ── Organizer Performance Metrics (derived from real data) ──────────── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -561,65 +551,67 @@ export default function AnalyticsPage() {
           <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-bold text-foreground">Organizer Performance</h3>
-                <p className="text-sm text-muted-foreground mt-1">Your metrics vs. platform average</p>
+                <h3 className="text-lg font-bold text-foreground">Performance Overview</h3>
+                <p className="text-sm text-muted-foreground mt-1">Your platform metrics at a glance</p>
               </div>
-              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-mono rounded-full border border-green-500/30">
-                Top 10% Organizer
-              </span>
+              {analyticsDataReal?.draws?.completed_draws > 0 && (
+                <span className="px-3 py-1 bg-green-500/20 text-green-600 text-xs font-mono rounded-full border border-green-500/30">
+                  Active
+                </span>
+              )}
             </div>
 
-            {/* Score Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: 'Overall Score', value: '92/100', sub: '+4 vs last period', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-                { label: 'Draws Created', value: '89', sub: 'This period', color: 'text-slate-700', bg: 'bg-slate-50 border-slate-200' },
-                { label: 'Success Rate', value: '97.8%', sub: 'Draws completed', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-                { label: 'Avg Response', value: '1.2h', sub: 'To participant queries', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-              ].map((card, idx) => (
-                <div key={idx} className={`p-4 rounded-lg border space-y-2 ${card.bg}`}>
-                  <p className="text-xs text-muted-foreground font-mono uppercase">{card.label}</p>
-                  <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
-                  <p className="text-xs text-muted-foreground">{card.sub}</p>
-                </div>
-              ))}
-            </div>
+            {(() => {
+              const draws = analyticsDataReal?.draws || {};
+              const entries = analyticsDataReal?.entries || {};
+              const tokens = analyticsDataReal?.tokens || {};
+              const winners = analyticsDataReal?.winners || {};
+              const totalDraws = Number(draws.total_draws || 0);
+              const completedDraws = Number(draws.completed_draws || 0);
+              const totalEntries = Number(entries.total_entries || 0);
+              const uniqueParticipants = Number(entries.unique_participants || 0);
+              const completionRate = totalDraws > 0 ? Math.round((completedDraws / totalDraws) * 10) / 10 : 0;
+              const avgEntriesPerDraw = totalDraws > 0 ? Math.round(totalEntries / totalDraws) : 0;
+              const tokenUsageRate = Number(tokens.total_tokens || 0) > 0
+                ? Math.round((Number(tokens.used_tokens || 0) / Number(tokens.total_tokens || 1)) * 10)
+                : 0;
+              return (
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { label: 'Total Draws', value: String(totalDraws), sub: `${draws.active_draws || 0} active`, color: 'text-foreground', bg: 'bg-muted border border-primary/20' },
+                      { label: 'Avg Entries/Draw', value: String(avgEntriesPerDraw), sub: `${uniqueParticipants} unique`, color: 'text-foreground', bg: 'bg-muted border border-primary/20' },
+                      { label: 'Completion Rate', value: `${completionRate}%`, sub: `${completedDraws} completed`, color: 'text-green-600', bg: 'bg-green-500/10 border border-green-500/20' },
+                      { label: 'Token Usage', value: `${tokenUsageRate}%`, sub: `${tokens.used_tokens || 0}/${tokens.total_tokens || 0} used`, color: 'text-blue-600', bg: 'bg-blue-500/10 border border-blue-500/20' },
+                    ].map((card, idx) => (
+                      <div key={idx} className={`p-4 rounded-lg border space-y-2 ${card.bg}`}>
+                        <p className="text-xs text-muted-foreground font-mono uppercase">{card.label}</p>
+                        <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+                        <p className="text-xs text-muted-foreground">{card.sub}</p>
+                      </div>
+                    ))}
+                  </div>
 
-            {/* Benchmark Comparison */}
-            <div className="space-y-4">
-              <p className="text-xs font-mono text-muted-foreground uppercase">You vs. Platform Average</p>
-              {[
-                { metric: 'Participant Satisfaction', you: 96, avg: 82 },
-                { metric: 'Draw Completion Rate', you: 98, avg: 89 },
-                { metric: 'Prize Distribution Speed', you: 88, avg: 74 },
-                { metric: 'Engagement Score', you: 91, avg: 76 },
-                { metric: 'Repeat Participation', you: 72, avg: 58 },
-              ].map((item, idx) => (
-                <div key={idx} className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-foreground">{item.metric}</span>
-                    <div className="flex gap-4 font-mono text-xs">
-                      <span className="text-slate-700">You: {item.you}%</span>
-                      <span className="text-muted-foreground">Avg: {item.avg}%</span>
-                    </div>
+                  {/* Summary Stats */}
+                  <div className="space-y-4">
+                    <p className="text-xs font-mono text-muted-foreground uppercase">Quick Stats</p>
+                    {[
+                      { metric: 'Prizes Awarded', value: String(winners.total_winners || 0), suffix: 'prizes' },
+                      { metric: 'Claimed', value: `${Number(winners.total_winners || 0) > 0 ? Math.round((Number(winners.claimed_prizes || 0) / Number(winners.total_winners || 1)) * 100) : 0}%`, suffix: 'of prizes' },
+                      { metric: 'Token Pool Size', value: String(tokens.total_tokens || 0), suffix: 'tokens' },
+                      { metric: 'Draws Opened', value: String(draws.active_draws || 0), suffix: 'currently' },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                        <span className="text-sm text-foreground">{item.metric}</span>
+                        <span className="text-sm font-mono text-foreground">
+                          {item.value} <span className="text-muted-foreground">{item.suffix}</span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                  <div className="h-4 bg-muted rounded overflow-hidden relative">
-                    <motion.div
-                      className="h-full bg-muted-foreground/40 rounded absolute"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${item.avg}%` }}
-                      transition={{ delay: idx * 0.07, duration: 0.5 }}
-                    />
-                    <motion.div
-                      className="h-full bg-slate-400 rounded absolute"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${item.you}%` }}
-                      transition={{ delay: idx * 0.07 + 0.1, duration: 0.5 }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                </>
+              );
+            })()}
           </div>
         </motion.div>
 
@@ -686,13 +678,15 @@ export default function AnalyticsPage() {
                   <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                     <p className="text-xs font-mono text-slate-600 uppercase mb-2">Period Headline</p>
                     <p className="text-foreground text-sm leading-relaxed">
-                      Over the past {timeRange}, your draws saw{' '}
-                      <strong className="text-slate-700">{currentData.kpis[0].value} participants</strong>{' '}
-                      across{' '}
-                      <strong className="text-slate-700">{currentData.kpis[1].value} active draws</strong>.{' '}
-                      Revenue is tracking at{' '}
-                      <strong className="text-slate-700">{currentData.kpis[5].value}</strong> — a{' '}
-                      {currentData.kpis[5].change} increase over the previous period.
+                      Your platform currently has{' '}
+                      <strong className="text-slate-700">{analyticsDataReal?.draws?.total_draws || 0} draws</strong>{' '}
+                      with{' '}
+                      <strong className="text-slate-700">{analyticsDataReal?.entries?.total_entries || 0} entries</strong>{' '}
+                      from{' '}
+                      <strong className="text-slate-700">{analyticsDataReal?.entries?.unique_participants || 0} participants</strong>.{' '}
+                      {analyticsDataReal?.winners?.total_winners
+                        ? `${analyticsDataReal.winners.total_winners} prizes have been awarded.`
+                        : 'No prizes awarded yet.'}
                     </p>
                   </div>
 
@@ -701,20 +695,24 @@ export default function AnalyticsPage() {
                     {[
                       {
                         icon: 'trendUp',
-                        title: 'Top Performer',
-                        body: 'Summer Prize Draw leads with 2,840 entries at 95% capacity — consider running a follow-up.',
+                        title: 'Draw Activity',
+                        body: `${analyticsDataReal?.draws?.active_draws || 0} draws currently open with ${analyticsDataReal?.draws?.completed_draws || 0} completed.`,
                         type: 'positive',
                       },
                       {
                         icon: 'alertTriangle',
-                        title: 'Action Required',
-                        body: '32 prizes remain unclaimed and 8 have expired. Trigger a re-notification campaign.',
-                        type: 'warning',
+                        title: 'Prize Claims',
+                        body: analyticsDataReal?.winners?.pending_claims
+                          ? `${analyticsDataReal.winners.pending_claims} prizes still awaiting claim. Consider sending reminders.`
+                          : 'All prizes are settled.',
+                        type: analyticsDataReal?.winners?.pending_claims ? 'warning' : 'positive',
                       },
                       {
                         icon: 'eye',
-                        title: 'Optimization',
-                        body: `Peak entries at ${peakDay.label}. Schedule draw launches around this window for maximum reach.`,
+                        title: 'Peak Activity',
+                        body: peakDay.label !== '—'
+                          ? `Highest recent activity on ${peakDay.label} with ${peakDay.entries.toLocaleString()} entries.`
+                          : 'Not enough data yet to determine peak activity.',
                         type: 'insight',
                       },
                     ].map((insight, idx) => (
@@ -745,10 +743,18 @@ export default function AnalyticsPage() {
                     <p className="text-xs font-mono text-muted-foreground uppercase">Data-Driven Recommendations</p>
                     <ul className="space-y-2">
                       {[
-                        'Increase token allocation by 15% for Tech Raffle — demand significantly outpaced supply.',
-                        'Age 26-35 (38%) is your highest-engaging group — prioritize prizes that appeal to this demographic.',
-                        `Claim rate of 94.2% is above average — your reminder cadence is working. Maintain it.`,
-                        'Response time of 1.2h places you top 10% — sustain this for continued high satisfaction scores.',
+                        analyticsDataReal?.draws?.draft_draws
+                          ? `You have ${analyticsDataReal.draws.draft_draws} draft draw(s) — publish them to start accepting entries.`
+                          : 'All draws are published.',
+                        analyticsDataReal?.winners?.pending_claims
+                          ? `${analyticsDataReal.winners.pending_claims} prize(s) pending claim — send reminder notifications.`
+                          : 'All prizes have been settled.',
+                        analyticsDataReal?.tokens?.total_tokens
+                          ? `${analyticsDataReal.tokens.used_tokens || 0} of ${analyticsDataReal.tokens.total_tokens} tokens used. Monitor token allocation.`
+                          : 'No tokens issued yet — create a draw to get started.',
+                        analyticsDataReal?.draws?.active_draws
+                          ? `${analyticsDataReal.draws.active_draws} active draw(s) running — ensure prizes are funded before draw date.`
+                          : 'No active draws — open a draw to attract participants.',
                       ].map((rec, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
                           <span className="text-slate-400 mt-0.5 flex-shrink-0">→</span>
@@ -760,7 +766,7 @@ export default function AnalyticsPage() {
 
                   <div className="flex gap-2 pt-2">
                     <Button variant="outline" className="text-xs font-mono">Copy Summary</Button>
-                    <Button variant="outline" className="text-xs font-mono">Export as PDF</Button>
+                    <Button variant="outline" className="text-xs font-mono" onClick={() => handleReportExport('pdf')}>Export as PDF</Button>
                     <Button
                       variant="outline"
                       className="text-xs font-mono"
@@ -896,6 +902,7 @@ export default function AnalyticsPage() {
                     variant="outline"
                     disabled={selectedMetrics.length === 0}
                     className="w-full font-mono text-sm"
+                    onClick={() => handleReportExport(reportFormat)}
                   >
                     Export {reportFormat.toUpperCase()}
                   </Button>
@@ -1209,8 +1216,8 @@ export default function AnalyticsPage() {
             <p className="text-sm text-muted-foreground">Download detailed analytics in PDF or Excel format</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline">PDF</Button>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90">Excel</Button>
+            <Button variant="outline" onClick={() => handleReportExport('pdf')}>PDF</Button>
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => handleReportExport('excel')}>Excel</Button>
           </div>
         </motion.div>
 
@@ -1286,7 +1293,8 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button className="flex-1 bg-slate-800 text-white hover:bg-slate-700 font-mono">
+                  <Button className="flex-1 bg-slate-800 text-white hover:bg-slate-700 font-mono"
+                    onClick={() => { handleReportExport(reportFormat); setShowPreview(false); }}>
                     Export {reportFormat.toUpperCase()}
                   </Button>
                   <Button variant="outline" onClick={() => setShowPreview(false)} className="font-mono">

@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/Navigation/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, apiUrls } from '@/lib/api';
+import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { toast } from '@/hooks/use-toast';
 import { IconInfoCircle, IconAlertTriangle, IconAlertHexagon, IconCheck, IconX, IconTicket, IconUser, IconLock, IconSettings, IconFileText, IconShield, IconSearch, IconFlag, IconReport } from '@tabler/icons-react';
 import { Pagination } from '@/components/Pagination';
@@ -212,27 +213,47 @@ export default function AuditLogPage() {
   }), [logs, alerts]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
-  const handleExportCSV = useCallback((data: AuditLog[]) => {
-    const rows = [
-      ['ID', 'Timestamp', 'Category', 'Action', 'Actor', 'Role', 'Target', 'Status', 'Severity', 'Details', 'IP', 'Device', 'Location', 'Hash'],
-      ...data.map(l => [l.id, l.timestamp, l.category, l.action, l.actor, l.actorRole, l.target, l.status, l.severity, l.details, l.ip, l.device, l.location, l.verificationHash]),
-    ];
-    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = `audit-log-${Date.now()}.csv`;
-    a.click();
+  const AUDIT_COLUMNS: ExportColumn[] = [
+    { header: 'ID', key: 'id' },
+    { header: 'Timestamp', key: 'timestamp' },
+    { header: 'Category', key: 'category' },
+    { header: 'Action', key: 'action' },
+    { header: 'Actor', key: 'actor' },
+    { header: 'Role', key: 'actorRole' },
+    { header: 'Target', key: 'target' },
+    { header: 'Status', key: 'status' },
+    { header: 'Severity', key: 'severity' },
+    { header: 'Details', key: 'details' },
+    { header: 'IP', key: 'ip' },
+    { header: 'Device', key: 'device' },
+    { header: 'Location', key: 'location' },
+    { header: 'Hash', key: 'verificationHash' },
+  ];
+
+  const handleExport = useCallback((data: AuditLog[], format: 'excel' | 'pdf') => {
+    const base = `audit-log-${Date.now()}`;
+    if (format === 'excel') {
+      exportExcel(data, AUDIT_COLUMNS, base, 'Audit Log');
+    } else {
+      exportPDF({
+        filename: base,
+        title: 'Audit Log Report',
+        subtitle: `${data.length} audit events`,
+        columns: AUDIT_COLUMNS,
+        data,
+      });
+    }
   }, []);
 
   const handleGenerateReport = useCallback(async () => {
     setReportGenerating(true);
     setReportReady(false);
-    // Export filtered logs as CSV report
-    handleExportCSV(filteredLogs);
+    // Export filtered logs as a PDF report
+    handleExport(filteredLogs, 'pdf');
     await new Promise(r => setTimeout(r, 500));
     setReportGenerating(false);
     setReportReady(true);
-  }, [filteredLogs, handleExportCSV]);
+  }, [filteredLogs, handleExport]);
 
   const handleUpdateInvestigation = useCallback((_alertId: string, _status: InvestigationStatus) => {
     toast({ title: 'Investigation note recorded', description: 'Your investigation update has been saved.' });
@@ -269,9 +290,13 @@ export default function AuditLogPage() {
                 variant="outline" className="border-primary/20">
                 <IconFileText size={18} stroke={1.5} /> Generate Report
               </Button>
-              <Button onClick={() => handleExportCSV(filteredLogs)}
+              <Button onClick={() => handleExport(filteredLogs, 'pdf')}
+                variant="outline" className="border-primary/20">
+                <IconFileText size={18} stroke={1.5} /> Export PDF
+              </Button>
+              <Button onClick={() => handleExport(filteredLogs, 'excel')}
                 className="bg-primary text-primary-foreground hover:bg-primary/90">
-                ↓ Export CSV
+                ↓ Export Excel
               </Button>
             </div>
           </motion.div>
@@ -419,7 +444,7 @@ export default function AuditLogPage() {
                           <motion.tr key={log.id}
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0 }} transition={{ delay: idx * 0.02 }}
-                            className={`hover:bg-muted/40 transition-colors ${log.flagged ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500/50' : ''}`}
+                            className={`hover:bg-primary/[0.04] transition-colors ${log.flagged ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500/50' : ''}`}
                           >
                             <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
                               {log.timestamp}
@@ -450,7 +475,7 @@ export default function AuditLogPage() {
                             </td>
                             <td className="px-4 py-3">
                               <button onClick={() => { setSelectedLog(log); setModal('detail'); }}
-                                className="text-xs text-primary hover:text-primary/80 transition-colors font-mono">
+                                className="text-xs text-primary hover:text-primary/80 transition-colors font-mono active:scale-95">
                                 View →
                               </button>
                             </td>
@@ -469,9 +494,9 @@ export default function AuditLogPage() {
                   <p className="text-xs text-muted-foreground font-mono">
                     {filteredLogs.length} of {logs.length} events
                   </p>
-                  <Button onClick={() => handleExportCSV(filteredLogs)} variant="outline" size="sm"
+                  <Button onClick={() => handleExport(filteredLogs, 'excel')} variant="outline" size="sm"
                     className="border-primary/20 text-xs">
-                    ↓ Export Filtered
+                    ↓ Export Excel
                   </Button>
                 </div>
               </div>
@@ -494,8 +519,8 @@ export default function AuditLogPage() {
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.06 }}
                     className={`border rounded-lg p-5 space-y-3 ${
-                      alert.severity === 'critical' ? 'bg-red-500/5 border-red-500/30' :
-                      'bg-yellow-500/5 border-yellow-500/30'
+                      alert.severity === 'critical' ? 'bg-red-500/5 border-red-500/30 shadow-[0_0_10px_rgba(255,45,45,0.15)]' :
+                      'bg-yellow-500/5 border-yellow-500/30 shadow-[0_0_10px_rgba(245,194,0,0.12)]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -510,13 +535,13 @@ export default function AuditLogPage() {
                       </div>
                       <Button onClick={() => { setSelectedAlert(alert); setInvestigationNote(alert.notes); setModal('investigate'); }}
                         variant="outline" size="sm"
-                        className={`shrink-0 ${alert.investigationStatus === 'open' ? 'border-red-500/30 text-red-400' : 'border-primary/20'}`}>
+                        className={`shrink-0 active:scale-95 ${alert.investigationStatus === 'open' ? 'border-red-500/30 text-red-400 hover:bg-red-500/5' : 'border-primary/20 hover:bg-primary/5'}`}>
                         {alert.investigationStatus === 'resolved' || alert.investigationStatus === 'dismissed'
                           ? 'View' : 'Investigate'}
                       </Button>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-black/20 rounded-lg p-3 text-xs font-mono">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 bg-muted/40 border border-primary/10 rounded-lg p-3 text-xs font-mono">
                       <div>
                         <p className="text-muted-foreground mb-0.5">Affected Entity</p>
                         <p className="text-foreground">{alert.affectedEntity}</p>
@@ -639,8 +664,8 @@ export default function AuditLogPage() {
                         <IconSearch size={14} stroke={2} /> Investigate
                       </Button>
                     )}
-                    <Button onClick={() => handleExportCSV([selectedLog])} variant="outline" className="flex-1 border-primary/20 text-xs">
-                      ↓ Export This Event
+                    <Button onClick={() => handleExport([selectedLog], 'pdf')} variant="outline" className="flex-1 border-primary/20 text-xs">
+                      ↓ Export This Event (PDF)
                     </Button>
                     <Button onClick={() => setModal(null)} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 text-xs">
                       Close
@@ -792,7 +817,7 @@ export default function AuditLogPage() {
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                       className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-center space-y-2">
                       <p className="text-green-400 font-bold"><IconCheck size={14} stroke={2} /> Report Ready</p>
-                      <p className="text-xs text-muted-foreground">audit-log-export.csv ({logs.length} events)</p>
+                      <p className="text-xs text-muted-foreground">audit-log-report.pdf ({logs.length} events)</p>
                     </motion.div>
                   )}
 
@@ -803,9 +828,9 @@ export default function AuditLogPage() {
                         {reportGenerating ? 'Generating…' : 'Generate Report'}
                       </Button>
                     ) : (
-                      <Button onClick={() => handleExportCSV(filteredLogs)}
+                      <Button onClick={() => handleExport(filteredLogs, 'excel')}
                         className="flex-1 bg-green-500/80 text-white hover:bg-green-500">
-                        ↓ Download Report (CSV)
+                        ↓ Download Report (Excel)
                       </Button>
                     )}
                     <Button onClick={() => setModal(null)} variant="outline" className="flex-1 border-primary/20">

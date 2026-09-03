@@ -76,14 +76,9 @@ export const claimPrize = asyncHandler(async (req: Request, res: Response) => {
     [id]
   );
 
-  // Credit prize value to winner's balance
+  // Prize value was already credited to the winner's balance when the draw was
+  // executed. Claiming only marks the prize as claimed (prevents double-credit).
   const prizeValue = parseFloat(winner.prize_value) || 0;
-  if (prizeValue > 0) {
-    await query(
-      'UPDATE users SET balance = balance + $1 WHERE id = $2',
-      [prizeValue, winner.user_id]
-    );
-  }
 
   await createAuditLog({
     actorId: req.user!.userId,
@@ -307,15 +302,32 @@ export const getAnalytics = asyncHandler(async (req: Request, res: Response) => 
     ),
   ]);
 
-  // Entry trend: last 30 days
+  // Entry trend: last 30 days (with unique participants per day)
   const trendResult = await query(`
     SELECT DATE_TRUNC('day', de.submitted_at) AS day,
-           COUNT(*) AS entries
+           COUNT(*) AS entries,
+           COUNT(DISTINCT de.participant_id) AS unique_participants
     FROM draw_entries de
     JOIN draws d ON de.draw_id = d.id
     WHERE de.submitted_at >= NOW() - INTERVAL '30 days'
     ${isAdmin ? '' : 'AND d.organizer_id = $1'}
     GROUP BY day ORDER BY day`,
+    isAdmin ? [] : [organizerId]
+  );
+
+  // Top draws by participation (top 8)
+  const topDrawsResult = await query(`
+    SELECT d.title, d.status, d.draw_date, d.max_participants,
+           COUNT(de.id) AS entry_count,
+           COUNT(DISTINCT de.participant_id) AS unique_participants,
+           d.token_price
+    FROM draws d
+    LEFT JOIN draw_entries de ON d.id = de.draw_id AND de.status = 'active'
+    WHERE d.deleted_at IS NULL AND d.status IN ('open','completed')
+    ${isAdmin ? '' : 'AND d.organizer_id = $1'}
+    GROUP BY d.id
+    ORDER BY entry_count DESC
+    LIMIT 8`,
     isAdmin ? [] : [organizerId]
   );
 
@@ -327,6 +339,7 @@ export const getAnalytics = asyncHandler(async (req: Request, res: Response) => 
       winners: winnerStats.rows[0],
       tokens: tokenStats.rows[0],
       recent_draws: recentActivity.rows,
+      top_draws: topDrawsResult.rows,
       entry_trend: trendResult.rows,
     },
   });

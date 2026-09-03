@@ -7,6 +7,7 @@ import { useState, useRef, Fragment, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, apiUrls } from '@/lib/api';
+import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { Sidebar } from '@/components/Navigation/Sidebar';
 import { IconUsers, IconClipboardList, IconLink, IconReceipt, IconCheck, IconCircleCheck, IconMail, IconX } from '@tabler/icons-react';
 import { Pagination } from '@/components/Pagination';
@@ -114,18 +115,16 @@ const INITIAL_PERM_MATRIX: Record<string, Set<string>> = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function exportCSV(data: object[], filename: string) {
+function exportExcelData(data: object[], filename: string, sheetName: string) {
   if (!data.length) return;
-  const headers = Object.keys(data[0]).join(',');
-  const rows    = data.map(r => Object.values(r).map(v => `"${v}"`).join(','));
-  const csv     = [headers, ...rows].join('\n');
-  const blob    = new Blob([csv], { type: 'text/csv' });
-  const url     = URL.createObjectURL(blob);
-  const a       = document.createElement('a');
-  a.href        = url;
-  a.download    = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const columns: ExportColumn[] = Object.keys(data[0]).map(k => ({ header: k.replace(/([A-Z])/g, ' $1').trim(), key: k }));
+  exportExcel(data, columns, filename, sheetName);
+}
+
+function exportPDFData(data: object[], filename: string, title: string) {
+  if (!data.length) return;
+  const columns: ExportColumn[] = Object.keys(data[0]).map(k => ({ header: k.replace(/([A-Z])/g, ' $1').trim(), key: k }));
+  exportPDF({ filename, title, subtitle: `${data.length} records`, columns, data });
 }
 
 const statusStyles: Record<string, string> = {
@@ -372,13 +371,18 @@ export default function AdminPanel() {
     setTimeout(() => setPermSaved(false), 2500);
   };
 
-  const exportUsers = () => exportCSV(
-    filteredUsers.map(({ id, name, email, role, status, joinDate, lastActive, verified }) =>
-      ({ id, name, email, role, status, joinDate, lastActive, verified })),
-    'users_export.csv'
-  );
+  const rawUsers = filteredUsers.map(({ id, name, email, role, status, joinDate, lastActive, verified }) =>
+    ({ id, name, email, role, status, joinDate, lastActive, verified }));
 
-  const exportAudit = () => exportCSV(auditLog, 'audit_log.csv');
+  const exportUsers = (fmt: 'excel' | 'pdf') => {
+    if (fmt === 'excel') exportExcelData(rawUsers, 'users_export', 'Users');
+    else exportPDFData(rawUsers, 'users_export', 'Users Export');
+  };
+
+  const exportAudit = (fmt: 'excel' | 'pdf') => {
+    if (fmt === 'excel') exportExcelData(auditLog, 'audit_log', 'Audit Log');
+    else exportPDFData(auditLog, 'audit_log', 'Audit Log Export');
+  };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -579,7 +583,8 @@ export default function AdminPanel() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <h2 className="text-2xl font-bold text-foreground">User Management</h2>
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" size="sm" onClick={exportUsers}>↓ Export CSV</Button>
+                <Button variant="outline" size="sm" onClick={() => exportUsers('excel')}>↓ Export Excel</Button>
+                <Button variant="outline" size="sm" onClick={() => exportUsers('pdf')}>↓ Export PDF</Button>
                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>↑ Import CSV</Button>
                 <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleImport} />
                 <Button className="bg-slate-800 text-white hover:bg-slate-700" size="sm">+ Add User</Button>
@@ -955,7 +960,8 @@ export default function AdminPanel() {
                 <h2 className="text-2xl font-bold text-foreground">User Audit Trail</h2>
                 <p className="text-sm text-muted-foreground mt-1">Complete log of all user and system actions</p>
               </div>
-              <Button variant="outline" size="sm" onClick={exportAudit}>↓ Export Audit Log</Button>
+              <Button variant="outline" size="sm" onClick={() => exportAudit('excel')}>↓ Export Audit (Excel)</Button>
+              <Button variant="outline" size="sm" onClick={() => exportAudit('pdf')}>↓ Export Audit (PDF)</Button>
             </div>
 
             {/* Filters */}

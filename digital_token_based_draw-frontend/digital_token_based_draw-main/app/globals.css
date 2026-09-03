@@ -2,39 +2,39 @@
 @import 'tw-animate-css';
 
 :root {
-  --background: #fafafa;
-  --foreground: #1a1a1a;
+  --background: #ffffff;
+  --foreground: #111827;
   --card: #ffffff;
-  --card-foreground: #1a1a1a;
+  --card-foreground: #111827;
   --popover: #ffffff;
-  --popover-foreground: #1a1a1a;
-  --primary: #374151;
+  --popover-foreground: #111827;
+  --primary: #3bb82e;
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #475569;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #1a1a1a;
+  --secondary: #eef7ec;
+  --secondary-foreground: #1f4d18;
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+  --accent: #f2f9f1;
+  --accent-foreground: #1f4d18;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --border: #e5e7eb;
   --input: #e5e7eb;
-  --ring: #94a3b8;
-  --chart-1: #374151;
-  --chart-2: #059669;
-  --chart-3: #d97706;
-  --chart-4: #7c3aed;
-  --chart-5: #db2777;
-  --radius: 0.5rem;
+  --ring: #3bb82e;
+  --chart-1: #3bb82e;
+  --chart-2: #22c55e;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #f43f5e;
+  --radius: 0.625rem;
   --sidebar: #ffffff;
-  --sidebar-foreground: #1a1a1a;
-  --sidebar-primary: #374151;
+  --sidebar-foreground: #111827;
+  --sidebar-primary: #3bb82e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-accent: #f2f9f1;
+  --sidebar-accent-foreground: #1f4d18;
   --sidebar-border: #e5e7eb;
-  --sidebar-ring: #cbd5e1;
+  --sidebar-ring: #3bb82e;
 }
 
 @theme inline {
@@ -99,8 +99,7 @@
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
-  }
-  
+  }  
   .scale-in {
     animation: scale-in 200ms ease-out forwards;
   }
@@ -108,6 +107,25 @@
   @keyframes scale-in {
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Horizontal auto-scrolling marquee (Raffall-style Who Uses strip) */
+  .marquee-mask {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, black 7%, black 93%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 7%, black 93%, transparent);
+  }
+  .marquee-track {
+    display: flex;
+    width: max-content;
+    animation: marquee-scroll 32s linear infinite;
+  }
+  .marquee-track:hover {
+    animation-play-state: paused;
+  }
+  @keyframes marquee-scroll {
+    from { transform: translateX(-50%); }
+    to { transform: translateX(0); }
   }
 
   ::-webkit-scrollbar {
@@ -120,11 +138,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+    background: #cbe6c4;
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: #3bb82e;
   }
 }

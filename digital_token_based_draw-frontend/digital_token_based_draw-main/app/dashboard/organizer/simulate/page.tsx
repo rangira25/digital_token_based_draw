@@ -279,11 +279,45 @@ export default function OrganizerSimulatePage() {
     <div className="flex h-screen bg-background">
       <Sidebar />
       <main className="flex-1 ml-64 overflow-y-auto">
-        <div className="p-8 space-y-8 max-w-7xl mx-auto">
+        <div className="relative p-8 space-y-8 max-w-7xl mx-auto">
 
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
             <h1 className="text-4xl font-bold text-foreground">Simulate Draw</h1>
             <p className="text-muted-foreground mt-1">Pick a draw, watch the random selection, and send notifications to participants.</p>
+          </motion.div>
+
+          {/* Raffle video hero panel */}
+          <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
+            className="relative h-[42vh] min-h-[300px] overflow-hidden rounded-2xl border border-border shadow-lg">
+            <video
+              src="/roulette-wheel.mp4"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/10" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+              <span className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur border border-white/20 text-white text-[11px] font-semibold uppercase tracking-widest mb-4">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                </span>
+                Live Raffle
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold text-white drop-shadow">
+                {selectedDraw ? selectedDraw.title : 'Random Draw Simulation'}
+              </h2>
+              <p className="text-white/80 mt-2 max-w-xl">
+                {selectedDraw
+                  ? `${selectedDraw.totalEntries} entries in the pool · ${selectedDraw.winnersCount} winner${selectedDraw.winnersCount !== 1 ? 's' : ''}`
+                  : 'Select a draw to begin the live random selection experience'}
+              </p>
+              <span className="mt-5 inline-flex items-center gap-2 text-[11px] font-mono text-white/70 bg-black/30 rounded-full px-4 py-1.5 backdrop-blur">
+                <IconDiamond size={14} /> Raffall · Casino luck wheel
+              </span>
+            </div>
           </motion.div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -361,8 +395,8 @@ export default function OrganizerSimulatePage() {
 
                   {/* Spin / Reveal Area */}
                   <div className="relative bg-gradient-to-br from-card to-card/50 border border-primary/30 rounded-lg overflow-hidden">
-                    <div className="absolute inset-0 opacity-5"
-                      style={{ backgroundImage: 'radial-gradient(circle, #374151 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
+                    <div className="absolute inset-0 opacity-10"
+                      style={{ backgroundImage: 'radial-gradient(circle, #3BB82E 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
 
                     <div className="relative p-8 flex flex-col items-center justify-center min-h-[320px]">
                       <AnimatePresence mode="wait">
@@ -385,7 +419,7 @@ export default function OrganizerSimulatePage() {
                                 </div>
                                 {canExecute(selectedDraw) && (
                                   <Button onClick={startSpin} disabled={simulating}
-                                    className="bg-slate-800 text-white hover:bg-slate-700 mt-4">
+                                    className="bg-[#3BB82E] text-white hover:bg-[#288C1D] mt-4">
                                     <IconPlayerPlay size={16} className="mr-2" />
                                     Simulate Draw
                                   </Button>
@@ -550,7 +584,7 @@ export default function OrganizerSimulatePage() {
                           <Input placeholder="Message body" value={notifyBody} onChange={e => setNotifyBody(e.target.value)}
                             className="border-primary/20 bg-background text-foreground" />
                           <Button onClick={handleSendNotify} disabled={!notifySubject || !notifyBody || sendingNotify}
-                            className="bg-slate-800 text-white hover:bg-slate-700">
+                            className="bg-[#3BB82E] text-white hover:bg-[#288C1D]">
                             <IconSpeakerphone size={14} className="mr-2" />
                             {sendingNotify ? 'Sending...' : `Send to ${result.winners.length + result.losers.length} participants`}
                           </Button>

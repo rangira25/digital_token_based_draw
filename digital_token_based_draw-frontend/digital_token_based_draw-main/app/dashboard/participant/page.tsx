@@ -8,7 +8,10 @@ import { Sidebar } from '@/components/Navigation/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, apiUrls } from '@/lib/api';
-import { IconDiamond, IconTicket, IconClock, IconTrophy, IconBell, IconCheck, IconCoin, IconPlus } from '@tabler/icons-react';
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
+} from 'recharts';
+import { IconDiamond, IconTicket, IconClock, IconTrophy, IconBell, IconCheck, IconCoin, IconPlus, IconChartBar } from '@tabler/icons-react';
 
 export default function ParticipantDashboard() {
   const router = useRouter();
@@ -75,6 +78,12 @@ export default function ParticipantDashboard() {
     { label: 'My Wins', value: myWins.length, icon: 'trophy' },
   ];
 
+  const tokenChartData = [
+    { name: 'Available', value: myTokens.filter((t: any) => t.status === 'issued').length },
+    { name: 'Used', value: myTokens.filter((t: any) => t.status === 'used').length },
+  ];
+  const totalTokenValue = tokenChartData[0].value + tokenChartData[1].value;
+
   const handleTopUp = async () => {
     const amount = parseFloat(topUpAmount);
     if (!amount || amount <= 0) { setTopUpError('Enter a valid amount'); return; }
@@ -119,7 +128,7 @@ export default function ParticipantDashboard() {
                 </div>
                 <p className="text-3xl font-bold text-slate-700">{stat.value}</p>
                 {stat.label === 'Balance' && (
-                  <Button onClick={() => setShowTopUp(true)} size="sm" className="w-full mt-1 bg-slate-800 text-white hover:bg-slate-700">
+                  <Button onClick={() => setShowTopUp(true)} size="sm" className="w-full mt-1 bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95">
                     <IconPlus size={14} stroke={2} /> Top Up
                   </Button>
                 )}
@@ -127,12 +136,72 @@ export default function ParticipantDashboard() {
             ))}
           </motion.div>
 
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-card border border-primary/20 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-foreground">My Tokens</h2>
+                <span className="text-xs text-muted-foreground font-mono">{totalTokenValue} total</span>
+              </div>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={tokenChartData}>
+                    <defs>
+                      <linearGradient id="tokenGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3BB82E" stopOpacity={0.4} />
+                        <stop offset="100%" stopColor="#3BB82E" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(59,130,46,0.15)" />
+                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
+                    <YAxis allowDecimals={false} stroke="#94a3b8" fontSize={12} />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="value" stroke="#3BB82E" strokeWidth={2} fill="url(#tokenGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-4 text-center">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg py-3">
+                  <p className="text-2xl font-bold text-[#3BB82E]">{tokenChartData[0].value}</p>
+                  <p className="text-xs text-muted-foreground">Available</p>
+                </div>
+                <div className="bg-muted/40 border border-primary/10 rounded-lg py-3">
+                  <p className="text-2xl font-bold text-muted-foreground">{tokenChartData[1].value}</p>
+                  <p className="text-xs text-muted-foreground">Used</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card border border-primary/20 rounded-lg p-6">
+              <h2 className="font-bold text-foreground mb-4">Participation Overview</h2>
+              <div className="space-y-5">
+                {[
+                  { label: 'Draws Available', value: openDraws.length, color: '#3BB82E' },
+                  { label: 'Draws Entered', value: enteredCount, color: '#22c55e' },
+                  { label: 'My Wins', value: myWins.length, color: '#f5c200' },
+                ].map(item => (
+                  <div key={item.label}>
+                    <div className="flex items-center justify-between text-sm mb-1.5">
+                      <span className="text-muted-foreground">{item.label}</span>
+                      <span className="font-bold text-foreground">{item.value}</span>
+                    </div>
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min((item.value / (openDraws.length || 1)) * 100, 100)}%` }}
+                        transition={{ delay: 0.4, duration: 0.8 }}
+                        className="h-full rounded-full" style={{ background: item.color }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
             className="bg-card border border-primary/20 rounded-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-foreground">Open Draws</h2>
               <Button onClick={() => router.push('/dashboard/participant/draws')}
-                className="bg-slate-900 text-white hover:bg-slate-800">View All</Button>
+                className="bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95">View All</Button>
             </div>
             <div className="space-y-3">
               {openDraws.slice(0, 3).map((draw: any, idx: number) => (
@@ -219,7 +288,7 @@ export default function ParticipantDashboard() {
               </div>
 
               <Button onClick={handleTopUp} disabled={topUpLoading || !topUpAmount.trim()}
-                className="w-full bg-slate-800 text-white hover:bg-slate-700">
+                className="w-full bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95">
                 {topUpLoading ? 'Processing...' : `Top Up $${parseFloat(topUpAmount) || 0}`}
               </Button>
             </motion.div>

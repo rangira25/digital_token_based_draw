@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/Pagination';
 import { api, apiUrls } from '@/lib/api';
+import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { Sidebar } from '@/components/Navigation/Sidebar';
 import { IconAlertTriangle, IconCheck, IconCircleCheck, IconX } from '@tabler/icons-react';
 
@@ -347,20 +348,31 @@ export default function TokensPage() {
     }
   }, [validateInput]);
 
-  const handleExport = useCallback(() => {
-    const rows = [
-      ['Token ID', 'Format', 'Draw', 'Participant', 'Email', 'Status', 'Created', 'Expiry', 'Used Date'],
-      ...filteredTokens.map(t => [
-        t.tokenCode, t.format, t.drawName, t.participantName, t.participantEmail,
-        t.status, t.createdDate, t.expiryDate, t.usedDate ?? '',
-      ]),
-    ];
-    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `tokens-export-${Date.now()}.csv`;
-    a.click();
+  const TOKEN_EXPORT_COLUMNS: ExportColumn[] = [
+    { header: 'Token ID', key: 'tokenCode' },
+    { header: 'Format', key: 'format' },
+    { header: 'Draw', key: 'drawName' },
+    { header: 'Participant', key: 'participantName' },
+    { header: 'Email', key: 'participantEmail' },
+    { header: 'Status', key: 'status' },
+    { header: 'Created', key: 'createdDate' },
+    { header: 'Expiry', key: 'expiryDate' },
+    { header: 'Used Date', key: 'usedDate' },
+  ];
+
+  const handleExport = useCallback((fmt: 'excel' | 'pdf') => {
+    const base = `tokens-export-${Date.now()}`;
+    if (fmt === 'excel') {
+      exportExcel(filteredTokens, TOKEN_EXPORT_COLUMNS, base, 'Tokens');
+    } else {
+      exportPDF({
+        filename: base,
+        title: 'Token Export',
+        subtitle: `${filteredTokens.length} tokens`,
+        columns: TOKEN_EXPORT_COLUMNS,
+        data: filteredTokens,
+      });
+    }
   }, [filteredTokens]);
 
   // ── 5. Conditional returns AFTER all hooks ────────────────────────────────
@@ -470,12 +482,20 @@ export default function TokensPage() {
               ))}
             </div>
             <Button
-              onClick={handleExport}
+              onClick={() => handleExport('pdf')}
               variant="outline"
               size="sm"
               className="border-primary/20 text-xs"
             >
-              ↓ Export CSV
+              ↓ Export PDF
+            </Button>
+            <Button
+              onClick={() => handleExport('excel')}
+              variant="outline"
+              size="sm"
+              className="border-primary/20 text-xs"
+            >
+              ↓ Export Excel
             </Button>
           </div>
         </motion.div>

@@ -11,6 +11,7 @@ import { api, apiUrls } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { IconSearch, IconUser, IconCheck, IconX, IconMail, IconPhone, IconCalendar } from '@tabler/icons-react';
 import { Pagination } from '@/components/Pagination';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as ReTooltip } from 'recharts';
 
 interface Participant {
   id: string;
@@ -116,6 +117,70 @@ export default function ParticipantsPage() {
             ))}
           </div>
 
+          {/* Graphs */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                title: 'Status Distribution',
+                data: [
+                  { name: 'Active', value: stats.active, color: '#3BB82E' },
+                  { name: 'Pending', value: stats.pending, color: '#f5c200' },
+                  { name: 'Suspended', value: participants.filter(p => p.status === 'suspended').length, color: '#ef4444' },
+                ],
+              },
+              {
+                title: 'Verification',
+                data: [
+                  { name: 'Email Verified', value: stats.verified, color: '#3BB82E' },
+                  { name: 'Unverified', value: participants.length - stats.verified, color: '#94a3b8' },
+                ],
+              },
+              {
+                title: 'Identity',
+                data: [
+                  { name: 'Identity Verified', value: participants.filter(p => p.identity_verified).length, color: '#3BB82E' },
+                  { name: 'Not Verified', value: participants.length - participants.filter(p => p.identity_verified).length, color: '#94a3b8' },
+                ],
+              },
+            ].map(chart => {
+              const total = chart.data.reduce((a, d) => a + d.value, 0);
+              return (
+                <div key={chart.title} className="bg-card border border-primary/20 rounded-lg p-4">
+                  <p className="text-xs text-muted-foreground uppercase font-mono mb-3">{chart.title}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="h-32 w-32 shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={chart.data} dataKey="value" nameKey="name" innerRadius={34} outerRadius={52}
+                            paddingAngle={2} strokeWidth={0}>
+                            {chart.data.map((d, i) => <Cell key={i} fill={d.color} />)}
+                          </Pie>
+                          <ReTooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-1.5 text-xs flex-1">
+                      {chart.data.map(d => (
+                        <div key={d.name} className="flex items-center justify-between gap-2">
+                          <span className="flex items-center gap-1.5 text-muted-foreground">
+                            <span className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
+                            {d.name}
+                          </span>
+                          <span className="font-bold text-foreground">{d.value}</span>
+                        </div>
+                      ))}
+                      <div className="pt-1 border-t border-primary/10 flex items-center justify-between">
+                        <span className="text-muted-foreground">Total</span>
+                        <span className="font-bold text-primary">{total}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </motion.div>
+
           {/* Filters */}
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
@@ -134,7 +199,7 @@ export default function ParticipantsPage() {
                   size="sm"
                   variant={filterStatus === status ? 'default' : 'outline'}
                   onClick={() => setFilterStatus(status)}
-                  className={filterStatus === status ? 'bg-slate-800 text-white' : ''}
+                  className={filterStatus === status ? 'bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95' : 'active:scale-95'}
                 >
                   {status.charAt(0).toUpperCase() + status.slice(1)}
                 </Button>
@@ -164,7 +229,7 @@ export default function ParticipantsPage() {
                   </tr>
                 ) : (
                   paginated.map(p => (
-                    <tr key={p.id} className="border-b border-primary/10 hover:bg-muted/30 transition-colors">
+                    <tr key={p.id} className="border-b border-primary/10 hover:bg-primary/[0.05] transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">

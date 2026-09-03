@@ -17,6 +17,8 @@ import {
   IconX,
   IconFileText,
   IconPaperclip,
+  IconTicket,
+  IconStar,
 } from '@tabler/icons-react';
 
 type VerificationStatus = 'idle' | 'pending' | 'verified' | 'rejected';
@@ -217,13 +219,16 @@ export default function AuthPage() {
   // ── Registration Success / Verification Status Screen ──────────────────────
   if (registrationComplete) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-emerald-50 via-white to-white" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-emerald-400/15 blur-3xl" />
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="w-full max-w-md"
         >
-          <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-6 text-center">
+          <div className="bg-card border border-primary/10 rounded-2xl p-8 space-y-6 text-center shadow-xl shadow-primary/5">
             {/* Status Icon */}
             <div className="flex justify-center text-primary">
               {verificationStatus === 'pending' && <IconClock size={48} stroke={1.5} />}
@@ -337,20 +342,94 @@ export default function AuthPage() {
 
   // ── Main Auth Page ──────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold text-foreground">Digital Draw</h1>
-            <p className="text-muted-foreground text-sm">Transparent, secure token-based draw system</p>
+    <div className="min-h-screen bg-background relative overflow-hidden lg:flex">
+      {/* Background accents */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-white to-white" />
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[420px] h-[420px] rounded-full bg-emerald-400/15 blur-3xl" />
+      </div>
+
+      {/* Left brand panel */}
+      <div className="hidden lg:flex lg:w-[45%] relative bg-gradient-to-br from-emerald-700 via-primary to-emerald-500 text-white overflow-hidden">
+        <div className="absolute inset-0 opacity-15">
+          <video autoPlay muted loop playsInline className="h-full w-full object-cover">
+            <source src="/hero-money.mp4" type="video/mp4" />
+          </video>
+        </div>
+        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-white/10 blur-2xl" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative m-auto max-w-md px-10 py-16 space-y-9">
+          <div className="flex items-center gap-3">
+            <span className="w-11 h-11 rounded-xl bg-white/15 flex items-center justify-center">
+              <IconTicket size={24} stroke={1.8} />
+            </span>
+            <span className="font-bold text-xl tracking-tight">
+              Digital<span className="text-white/80">Draws</span>
+            </span>
           </div>
+          <div className="space-y-3">
+            <h2 className="text-3xl font-bold leading-tight text-balance">
+              The fairest way to run raffles people love.
+            </h2>
+            <p className="text-white/80 text-lg">
+              Host a draw or enter to win — powered by fair, independent, cryptographically sealed tokens.
+            </p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { icon: IconCheck, text: 'Verify every draw with independent audits' },
+              { icon: IconShieldLock, text: 'Multi-factor security and identity checks' },
+              { icon: IconClock, text: 'Real-time results and instant notifications' },
+            ].map(b => (
+              <div key={b.text} className="flex items-center gap-3 text-sm text-white/90">
+                <span className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
+                  <b.icon size={16} stroke={2} />
+                </span>
+                {b.text}
+              </div>
+            ))}
+          </div>
+          <div className="bg-white/10 rounded-2xl p-5 space-y-3 backdrop-blur">
+            <div className="flex items-center gap-2">
+              <span className="w-10 h-10 rounded-full bg-white/85 text-primary flex items-center justify-center text-xs font-bold">SP</span>
+              <div>
+                <p className="text-sm font-semibold">Sarah Pajak</p>
+                <p className="text-xs text-white/70">Coca-Cola</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <IconStar key={i} size={15} stroke={1.5} className="text-amber-300 fill-amber-300" />
+              ))}
+            </div>
+            <p className="text-sm text-white/85 leading-relaxed">
+              &quot;Digital Draws helped us engage customers in a fun and interactive way while driving revenue and brand loyalty.&quot;
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right form area */}
+      <div className="flex-1 flex items-center justify-center p-6 lg:py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="space-y-8">
+            <div className="lg:hidden text-center space-y-2">
+              <div className="flex justify-center mb-2">
+                <span className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/30">
+                  <IconTicket size={24} stroke={1.8} />
+                </span>
+              </div>
+              <h1 className="text-3xl font-bold text-foreground">Digital Draws</h1>
+              <p className="text-muted-foreground text-sm">Transparent, secure token-based draw system</p>
+            </div>
 
           <motion.div
-            className="bg-card border border-primary/20 rounded-lg p-8 space-y-6"
+            className="bg-card border border-primary/10 rounded-2xl p-8 space-y-6 shadow-xl shadow-primary/5"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
@@ -703,14 +782,14 @@ export default function AuthPage() {
               )}
             </AnimatePresence>
 
-            
           </motion.div>
 
           <p className="text-center text-xs text-muted-foreground">
             Digital Token Draw System © 2026
           </p>
         </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

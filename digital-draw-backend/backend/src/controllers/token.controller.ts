@@ -14,12 +14,15 @@ export const issueTokens = asyncHandler(async (req: Request, res: Response) => {
 
     // Validate draw exists and is open
     const drawResult = await client.query(
-      `SELECT id, status FROM draws WHERE id = $1 AND deleted_at IS NULL`,
+      `SELECT id, status, registration_end FROM draws WHERE id = $1 AND deleted_at IS NULL`,
       [draw_id]
     );
     const draw = drawResult.rows[0];
     if (!draw) throw new AppError('Draw not found', 404);
     if (draw.status !== 'open') throw new AppError('Draw is not open for token issuance', 400);
+    if (draw.registration_end && new Date(draw.registration_end) < new Date()) {
+      throw new AppError('Registration has ended for this draw; tokens can no longer be issued', 400);
+    }
 
     // Issue tokens into the pool (no participant assigned, status = 'available')
     const issuedTokens = [];
@@ -75,13 +78,16 @@ export const requestToken = asyncHandler(async (req: Request, res: Response) => 
     await client.query('BEGIN');
 
     const drawResult = await client.query(
-      `SELECT id, status, max_entries_per_user, token_price
+      `SELECT id, status, max_entries_per_user, token_price, registration_start, registration_end
        FROM draws WHERE id = $1 AND deleted_at IS NULL`,
       [draw_id]
     );
     const draw = drawResult.rows[0];
     if (!draw) throw new AppError('Draw not found', 404);
     if (draw.status !== 'open') throw new AppError('Draw is not open for token requests', 400);
+    if (draw.registration_end && new Date(draw.registration_end) < new Date()) {
+      throw new AppError('Registration has ended for this draw; token purchase is no longer available', 400);
+    }
 
     // Check token price and user balance
     const price = parseFloat(draw.token_price) || 0;

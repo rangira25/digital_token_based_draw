@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/Navigation/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api, apiUrls, ApiError } from '@/lib/api';
+import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { IconCash, IconPackage, IconTicket, IconStar, IconKey, IconShieldLock, IconClipboardList, IconPencil, IconReceipt, IconTarget, IconPlayerPlay, IconPlayerStop, IconAtom, IconX, IconClipboard, IconCircleCheck, IconCheck } from '@tabler/icons-react';
 import { Pagination } from '@/components/Pagination';
 
@@ -149,11 +150,11 @@ const MOCK_TEMPLATES: (DrawConfig & { id: string; templateName: string })[] = [
 const categoryIcon: Record<PrizeCategory, string> = { cash: 'cash', product: 'package', voucher: 'ticket', experience: 'star', license: 'key' };
 const STATUS_FLOW: DrawStatus[] = ['draft', 'active', 'closed', 'completed'];
 
-const statusConfig: Record<DrawStatus, { color: string; bg: string; next?: DrawStatus; nextLabel?: string }> = {
-  draft:     { color: 'text-muted-foreground', bg: 'bg-muted border-muted-foreground/20',           next: 'active',    nextLabel: 'Publish' },
-  active:    { color: 'text-primary',           bg: 'bg-primary/10 border-primary/30',                 next: 'closed',    nextLabel: 'Close Entries' },
-  closed:    { color: 'text-yellow-400',       bg: 'bg-yellow-500/10 border-yellow-500/30',         next: 'completed', nextLabel: 'Mark Completed' },
-  completed: { color: 'text-primary',          bg: 'bg-primary/10 border-primary/30' },
+const statusConfig: Record<DrawStatus, { color: string; bg: string; dot: string; next?: DrawStatus; nextLabel?: string }> = {
+  draft:     { color: 'text-slate-600',   bg: 'bg-slate-100 border-slate-200',     dot: 'bg-slate-400',   next: 'active',    nextLabel: 'Publish' },
+  active:    { color: 'text-[#3BB82E]',   bg: 'bg-[#3BB82E]/10 border-[#3BB82E]/30', dot: 'bg-[#3BB82E]', next: 'closed',    nextLabel: 'Close Entries' },
+  closed:    { color: 'text-amber-600',   bg: 'bg-amber-50 border-amber-200',       dot: 'bg-amber-500',  next: 'completed', nextLabel: 'Draw Winners' },
+  completed: { color: 'text-[#3BB82E]',   bg: 'bg-[#3BB82E]/10 border-[#3BB82E]/30', dot: 'bg-[#3BB82E]' },
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -161,7 +162,8 @@ const statusConfig: Record<DrawStatus, { color: string; bg: string; next?: DrawS
 function StatusBadge({ status }: { status: DrawStatus }) {
   const c = statusConfig[status];
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${c.bg} ${c.color}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${c.bg} ${c.color}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
   );
@@ -793,50 +795,64 @@ export default function DrawsPage() {
     }
   }, []);
 
-  const handleExportReport = useCallback((draw: Draw) => {
-    const rows = [
-      ['Field', 'Value'],
-      ['ID', draw.id],
-      ['Name', draw.name],
-      ['Status', draw.status],
-      ['Description', draw.description],
-      ['Start Date', draw.startDate],
-      ['End Date', draw.endDate],
-      ['Draw Date', draw.drawDate],
-      ['Participants', String(draw.participants)],
-      ['Max Participants', String(draw.maxParticipants)],
-      ['Winners', String(draw.winnersCount)],
-      ['Entry Type', draw.entryType],
-      ['Token Price', `$${draw.tokenPrice}`],
-      ['Entry Limit', String(draw.entryLimitPerParticipant)],
-      ['Algorithm', draw.algorithm],
-      ['Min Age', draw.eligibility.minAge],
-      ['Regions', draw.eligibility.allowedRegions],
-      ['Requires Verified ID', draw.eligibility.requiresVerifiedId ? 'Yes' : 'No'],
-      ...draw.prizes.map(p => [`Prize #${p.rank}`, `${p.label}: ${p.description} ($${p.value})`]),
-      ['Total Prize Pool', `$${draw.prizes.reduce((s, p) => s + p.value * p.quantity, 0)}`],
+  const handleExportReport = useCallback((draw: Draw, fmt: 'excel' | 'pdf') => {
+    const reportRows = [
+      { Field: 'ID', Value: draw.id },
+      { Field: 'Name', Value: draw.name },
+      { Field: 'Status', Value: draw.status },
+      { Field: 'Description', Value: draw.description },
+      { Field: 'Start Date', Value: draw.startDate },
+      { Field: 'End Date', Value: draw.endDate },
+      { Field: 'Draw Date', Value: draw.drawDate },
+      { Field: 'Participants', Value: draw.participants },
+      { Field: 'Max Participants', Value: draw.maxParticipants },
+      { Field: 'Winners', Value: draw.winnersCount },
+      { Field: 'Entry Type', Value: draw.entryType },
+      { Field: 'Token Price', Value: `$${draw.tokenPrice}` },
+      { Field: 'Entry Limit', Value: draw.entryLimitPerParticipant },
+      { Field: 'Algorithm', Value: draw.algorithm },
+      { Field: 'Min Age', Value: draw.eligibility.minAge },
+      { Field: 'Regions', Value: Array.isArray(draw.eligibility.allowedRegions) ? draw.eligibility.allowedRegions.join(', ') : String(draw.eligibility.allowedRegions ?? '') },
+      { Field: 'Requires Verified ID', Value: draw.eligibility.requiresVerifiedId ? 'Yes' : 'No' },
+      ...draw.prizes.map(p => ({ Field: `Prize #${p.rank}`, Value: `${p.label}: ${p.description} ($\${p.value})` })),
+      { Field: 'Total Prize Pool', Value: `$${draw.prizes.reduce((s, p) => s + p.value * p.quantity, 0)}` },
     ];
-    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = `draw-report-${draw.id}.csv`;
-    a.click();
+    const columns: ExportColumn[] = [
+      { header: 'Field', key: 'Field' },
+      { header: 'Value', key: 'Value' },
+    ];
+    const base = `draw-report-${draw.id}`;
+    if (fmt === 'excel') {
+      exportExcel(reportRows, columns, base, 'Draw Report');
+    } else {
+      exportPDF({ filename: base, title: `Draw Report: ${draw.name}`, subtitle: `Status: ${draw.status}`, columns, data: reportRows });
+    }
   }, []);
 
-  const handleExportAllReports = useCallback(() => {
-    const rows = [
-      ['ID', 'Name', 'Status', 'Start', 'End', 'Draw Date', 'Participants', 'Winners', 'Entry Type', 'Prize Pool', 'Algorithm'],
-      ...draws.map(d => [
-        d.id, d.name, d.status, d.startDate, d.endDate, d.drawDate,
-        String(d.participants), String(d.winnersCount), d.entryType,
-        `$${d.prizes.reduce((s, p) => s + p.value * p.quantity, 0)}`, d.algorithm,
-      ]),
+  const handleExportAllReports = useCallback((fmt: 'excel' | 'pdf') => {
+    const columns: ExportColumn[] = [
+      { header: 'ID', key: 'id' },
+      { header: 'Name', key: 'name' },
+      { header: 'Status', key: 'status' },
+      { header: 'Start', key: 'startDate' },
+      { header: 'End', key: 'endDate' },
+      { header: 'Draw Date', key: 'drawDate' },
+      { header: 'Participants', key: 'participants' },
+      { header: 'Winners', key: 'winnersCount' },
+      { header: 'Entry Type', key: 'entryType' },
+      { header: 'Prize Pool', key: 'prizePool' },
+      { header: 'Algorithm', key: 'algorithm' },
     ];
-    const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-    a.download = `all-draws-report-${Date.now()}.csv`;
-    a.click();
+    const data = draws.map(d => ({
+      ...d,
+      prizePool: `$${d.prizes.reduce((s, p) => s + p.value * p.quantity, 0)}`,
+    }));
+    const base = `all-draws-report-${Date.now()}`;
+    if (fmt === 'excel') {
+      exportExcel(data, columns, base, 'Draws');
+    } else {
+      exportPDF({ filename: base, title: 'All Draws Report', subtitle: `${draws.length} draws`, columns, data });
+    }
   }, [draws]);
 
   // ── Guards ─────────────────────────────────────────────────────────────────
@@ -857,11 +873,14 @@ export default function DrawsPage() {
               <p className="text-muted-foreground mt-1">Create, configure, and manage the full lifecycle of your draws.</p>
             </div>
             <div className="flex gap-2">
-              <Button onClick={handleExportAllReports} variant="outline" className="border-primary/20 text-xs">
-                ↓ Export All
+              <Button onClick={() => handleExportAllReports('pdf')} variant="outline" className="border-primary/20 text-xs">
+                ↓ Export All (PDF)
+              </Button>
+              <Button onClick={() => handleExportAllReports('excel')} variant="outline" className="border-primary/20 text-xs">
+                ↓ Export All (Excel)
               </Button>
               <Button onClick={() => { setFormConfig(emptyConfig()); setActiveDraw(null); setModal('create'); }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90">
+                className="bg-[#3BB82E] text-white hover:bg-[#288C1D] font-semibold">
                 + New Draw
               </Button>
             </div>
@@ -871,12 +890,12 @@ export default function DrawsPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}
             className="grid grid-cols-3 md:grid-cols-6 gap-3">
             {[
-              { label: 'Total',     value: stats.total,     color: 'text-foreground',  bg: 'bg-card border-primary/20' },
-              { label: 'Active',    value: stats.active,    color: 'text-slate-700',      bg: 'bg-slate-50 border-slate-200' },
-              { label: 'Draft',     value: stats.draft,     color: 'text-muted-foreground', bg: 'bg-muted/30 border-muted' },
-              { label: 'Closed',    value: stats.closed,    color: 'text-yellow-400',  bg: 'bg-yellow-500/5 border-yellow-500/20' },
-              { label: 'Completed', value: stats.completed, color: 'text-primary',     bg: 'bg-primary/5 border-primary/20' },
-              { label: 'Prize Pool', value: `$${stats.totalPool.toLocaleString()}`, color: 'text-green-400', bg: 'bg-green-500/5 border-green-500/20' },
+              { label: 'Total',     value: stats.total,     color: 'text-foreground',      bg: 'bg-card border-primary/20' },
+              { label: 'Active',    value: stats.active,    color: 'text-[#3BB82E]',       bg: 'bg-[#3BB82E]/5 border-[#3BB82E]/20' },
+              { label: 'Draft',     value: stats.draft,     color: 'text-slate-500',       bg: 'bg-slate-50 border-slate-200' },
+              { label: 'Closed',    value: stats.closed,    color: 'text-amber-600',       bg: 'bg-amber-50 border-amber-200' },
+              { label: 'Completed', value: stats.completed, color: 'text-[#3BB82E]',       bg: 'bg-[#3BB82E]/5 border-[#3BB82E]/20' },
+              { label: 'Prize Pool', value: `$${stats.totalPool.toLocaleString()}`, color: 'text-[#3BB82E]', bg: 'bg-[#3BB82E]/5 border-[#3BB82E]/20' },
             ].map((s, i) => (
               <motion.div key={s.label} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: i * 0.04 }} className={`border rounded-lg p-3 ${s.bg}`}>
@@ -912,14 +931,14 @@ export default function DrawsPage() {
             <div className="flex gap-1 bg-muted rounded-lg p-1">
               {(['all', 'draft', 'active', 'closed', 'completed'] as const).map(s => (
                 <button key={s} onClick={() => setFilterStatus(s)}
-                  className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${filterStatus === s ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}>
+                  className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${filterStatus === s ? 'bg-[#3BB82E] text-white' : 'text-muted-foreground hover:text-foreground'}`}>
                   {s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
             </div>
             <div className="flex gap-1 bg-muted rounded-lg p-1">
               <button onClick={() => setActiveView('grid')}
-                className={`px-3 py-1.5 rounded text-xs transition-all ${activeView === 'grid' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+                className={`px-3 py-1.5 rounded text-xs transition-all ${activeView === 'grid' ? 'bg-[#3BB82E] text-white' : 'text-muted-foreground'}`}>
                 ▦ Grid
               </button>
               <button onClick={() => setModal('calendar')}
@@ -940,15 +959,16 @@ export default function DrawsPage() {
                 return (
                   <motion.div key={draw.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }} transition={{ delay: idx * 0.05 }}
-                    className="bg-card border border-primary/20 rounded-lg p-6 space-y-4 hover:border-primary/40 transition-colors">
+                    className="bg-card border border-primary/20 rounded-xl p-6 space-y-4 border-l-4 hover:shadow-lg hover:shadow-[#3BB82E]/5 hover:border-[#3BB82E]/40 transition-all"
+                    style={{ borderLeftColor: draw.status === 'active' ? '#3BB82E' : draw.status === 'completed' ? '#3BB82E' : draw.status === 'closed' ? '#f59e0b' : '#94a3b8' }}>
 
                     {/* Title row */}
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <StatusBadge status={draw.status} />
-                          {draw.testMode && <span className="text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">Test</span>}
-                          {draw.entryType === 'paid' && <span className="text-xs bg-green-500/10 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full">Paid</span>}
+                          {draw.testMode && <span className="text-xs bg-yellow-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">Test</span>}
+                          {draw.entryType === 'paid' && <span className="text-xs bg-[#3BB82E]/10 text-[#3BB82E] border border-[#3BB82E]/30 px-2 py-0.5 rounded-full">Paid</span>}
                         </div>
                         <h3 className="text-lg font-bold text-foreground truncate">{draw.name}</h3>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{draw.description}</p>
@@ -956,7 +976,7 @@ export default function DrawsPage() {
                       {totalPool > 0 && (
                         <div className="text-right shrink-0">
                           <p className="text-xs text-muted-foreground">Prize Pool</p>
-                          <p className="text-lg font-bold text-primary">${totalPool.toLocaleString()}</p>
+                          <p className="text-lg font-bold text-[#3BB82E]">${totalPool.toLocaleString()}</p>
                         </div>
                       )}
                     </div>
@@ -976,45 +996,44 @@ export default function DrawsPage() {
                     </div>
 
                     {/* Prize tiers preview */}
-                    <div className="bg-background/50 rounded-lg p-3 border border-primary/10 space-y-1">
+                    <div className="bg-[#f7faf7] rounded-lg p-3 border border-[#3BB82E]/10 space-y-1">
                       {draw.prizes.slice(0, 2).map(tier => (
                         <div key={tier.rank} className="flex items-center gap-2 text-xs">
-                          <span>{categoryIcon[tier.category]}</span>
-                          <span className="text-primary font-medium w-14 shrink-0">{tier.label}</span>
+                          <span className="text-[#3BB82E]">{categoryIcon[tier.category]}</span>
+                          <span className="text-[#3BB82E] font-medium w-14 shrink-0">{tier.label}</span>
                           <span className="text-foreground flex-1 truncate">{tier.description}</span>
-                          {tier.value > 0 && <span className="text-slate-700 font-semibold">${tier.value.toLocaleString()}</span>}
+                          {tier.value > 0 && <span className="text-[#3BB82E] font-semibold">${tier.value.toLocaleString()}</span>}
                         </div>
                       ))}
                       {draw.prizes.length > 2 && <p className="text-xs text-muted-foreground">+{draw.prizes.length - 2} more tiers</p>}
                     </div>
 
                     {/* Participants progress */}
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Participants</span>
-                        <span>{draw.participants.toLocaleString()} / {draw.maxParticipants.toLocaleString()}</span>
+                        <span className="font-medium">Participants</span>
+                        <span className="font-mono">{draw.participants.toLocaleString()} / {draw.maxParticipants.toLocaleString()}</span>
                       </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-slate-300 rounded-full transition-all" style={{ width: `${participantPct}%` }} />
+                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full transition-all ${participantPct === 100 ? 'bg-[#3BB82E]' : 'bg-[#3BB82E]/70'}`} style={{ width: `${participantPct}%` }} />
                       </div>
                     </div>
 
                     {/* Entry info */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span><AlgorithmBadge algo={draw.algorithm} /></span>
+                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground border-t border-primary/10 pt-3">
+                      <AlgorithmBadge algo={draw.algorithm} />
                       <span>·</span>
                       <span>Max {draw.entryLimitPerParticipant} entr{draw.entryLimitPerParticipant > 1 ? 'ies' : 'y'}/person</span>
-                      {draw.entryType === 'paid' && <><span>·</span><span className="text-green-400">${draw.tokenPrice}/token</span></>}
+                      {draw.entryType === 'paid' && <><span>·</span><span className="text-[#3BB82E] font-semibold">${draw.tokenPrice}/token</span></>}
                       <span>·</span>
                       <span>{draw.eligibility.minAge}</span>
                     </div>
 
                     {/* Action buttons */}
                     <div className="flex flex-wrap gap-2">
-                      {/* Advance status */}
                       {cfg.next && (
                         <Button onClick={() => handleAdvanceStatus(draw)} size="sm"
-                          className="bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 text-xs">
+                          className="bg-[#3BB82E] text-white hover:bg-[#288C1D] text-xs font-semibold">
                           {cfg.nextLabel} →
                         </Button>
                       )}
@@ -1030,10 +1049,10 @@ export default function DrawsPage() {
                           History
                         </Button>
                       )}
-                      <Button onClick={() => handleExportReport(draw)} variant="outline" size="sm" className="border-primary/20 text-xs">
-                        ↓ Export
-                      </Button>
-                      <Button onClick={() => router.push(`/dashboard/organizer/draws/${draw.id}`)} variant="outline" size="sm" className="border-primary/20 text-xs">
+                <Button onClick={() => handleExportReport(draw, 'excel')} variant="outline" size="sm" className="border-primary/20 text-xs">
+                  ↓ Export
+                </Button>
+                      <Button onClick={() => router.push(`/dashboard/organizer/draws/${draw.id}`)} variant="outline" size="sm" className="border-[#3BB82E]/40 text-[#3BB82E] hover:bg-[#3BB82E]/10 text-xs font-medium">
                         Details →
                       </Button>
                     </div>
@@ -1095,7 +1114,7 @@ export default function DrawsPage() {
                   <div className="flex gap-2">
                     <Button onClick={() => setModal(null)} variant="outline" className="flex-1 border-primary/20">Cancel</Button>
                     <Button onClick={handleSaveDraw} disabled={!formConfig.name.trim() || saveSuccess}
-                      className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
+                      className="flex-1 bg-[#3BB82E] text-white hover:bg-[#288C1D] font-semibold">
                       {saveSuccess ? (<><IconCheck size={16} stroke={1.5} /> Saved!</>) : modal === 'edit' ? 'Save Changes' : 'Create Draw'}
                     </Button>
                   </div>
@@ -1155,7 +1174,7 @@ export default function DrawsPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button onClick={() => handleExportReport(activeDraw)} variant="outline" className="flex-1 border-primary/20 text-xs">↓ Export Report</Button>
+                    <Button onClick={() => handleExportReport(activeDraw, 'pdf')} variant="outline" className="flex-1 border-primary/20 text-xs">↓ Export Report (PDF)</Button>
                     <Button onClick={() => setModal(null)} className="flex-1 bg-slate-800 text-white hover:bg-slate-700 text-xs">Close</Button>
                   </div>
                 </div>
