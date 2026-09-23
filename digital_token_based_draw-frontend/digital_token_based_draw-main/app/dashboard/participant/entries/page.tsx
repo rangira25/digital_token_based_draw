@@ -1,6 +1,6 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -15,6 +15,7 @@ export default function EntriesPage() {
   const [filter, setFilter] = useState<'all' | 'active' | 'expired'>('all');
   const [entries, setEntries] = useState<any[]>([]);
   const [page, setPage] = useState(1);
+  const [selectedEntry, setSelectedEntry] = useState<any>(null);
   const PAGE_SIZE = 10;
 
   useEffect(() => {
@@ -130,10 +131,14 @@ export default function EntriesPage() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className={`bg-card border rounded-lg p-6 space-y-4 transition-all duration-300 hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 ${
+              className={`border rounded-lg p-6 space-y-4 transition-all duration-300 hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 ${
+                idx % 2 === 0
+                  ? 'bg-card border-primary/20'
+                  : 'bg-primary/5 border-primary/30'
+              } ${
                 entry.status === 'active' 
-                  ? 'border-slate-300' 
-                  : 'border-primary/20'
+                  ? (idx % 2 === 0 ? 'border-slate-300' : 'border-primary/40')
+                  : ''
               }`}
             >
               <div className="flex items-start justify-between">
@@ -187,11 +192,12 @@ export default function EntriesPage() {
               </div>
 
               <div className="flex gap-2 pt-2">
-                <Button size="sm" variant="outline">View Draw</Button>
-                <Button size="sm" variant="outline">Token Details</Button>
-                {entry.status === 'active' && (
-                  <Button size="sm" className="ml-auto bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95">Verify Entry</Button>
-                )}
+                <Button size="sm" variant="outline" onClick={() => router.push('/dashboard/participant/draws')}>
+                  View Draw
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setSelectedEntry(entry)}>
+                  Token Details
+                </Button>
               </div>
             </motion.div>
           ))}
@@ -213,6 +219,72 @@ export default function EntriesPage() {
             </Button>
           </motion.div>
         )}
+
+        {/* Token Details Modal */}
+        <AnimatePresence>
+          {selectedEntry && (
+            <motion.div
+              key="token-detail-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+              onClick={() => setSelectedEntry(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-card border border-primary/20 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-5"
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-foreground">{selectedEntry.drawName}</h2>
+                    <p className="text-xs text-muted-foreground font-mono mt-1">Entry {selectedEntry.id}</p>
+                  </div>
+                  <button onClick={() => setSelectedEntry(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
+                </div>
+                <div className="space-y-3">
+                  <div className="bg-background border border-primary/10 rounded-lg p-3">
+                    <p className="text-xs text-muted-foreground mb-2 font-mono">ASSIGNED TOKENS</p>
+                    {selectedEntry.tokens.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No tokens assigned.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {selectedEntry.tokens.map((code: string, i: number) => (
+                          <div key={i} className="flex items-center justify-between bg-card border border-primary/10 rounded px-3 py-2">
+                            <span className="font-mono text-sm font-bold text-foreground">{code}</span>
+                            <button onClick={() => navigator.clipboard.writeText(code)} className="text-xs text-primary hover:text-primary/80">Copy</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-background border border-primary/10 rounded-lg p-3">
+                      <p className="text-muted-foreground mb-0.5">Status</p>
+                      <span className={`font-bold ${selectedEntry.status === 'active' ? 'text-[#3BB82E]' : 'text-muted-foreground'}`}>
+                        {selectedEntry.status.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="bg-background border border-primary/10 rounded-lg p-3">
+                      <p className="text-muted-foreground mb-0.5">Entered</p>
+                      <p className="font-bold text-foreground">{selectedEntry.enteredDate}</p>
+                    </div>
+                  </div>
+                  {selectedEntry.winnerRank && (
+                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3 text-center">
+                      <p className="text-green-600 font-bold text-sm">
+                        {selectedEntry.winnerStatus === 'claimed' ? 'Prize Claimed' : `Winner #${selectedEntry.winnerRank}`}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </main>
   </div>

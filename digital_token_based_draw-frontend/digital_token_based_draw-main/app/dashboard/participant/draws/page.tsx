@@ -294,6 +294,7 @@ export default function AvailableDrawsPage() {
 
   const filteredDraws = useMemo(() => draws.filter(d => {
     if (d.status !== 'active') return false;
+    if (d.endDate && new Date(`${d.endDate}T23:59:59`).getTime() < Date.now()) return false;
     const q = searchTerm.toLowerCase();
     const matchSearch = !q || d.name.toLowerCase().includes(q) || d.organizer.toLowerCase().includes(q);
     const matchUrgent = !filterUrgent || daysUntil(d.endDate) <= 7;
@@ -501,7 +502,7 @@ export default function AvailableDrawsPage() {
                     return (
                       <motion.div key={draw.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.04 }}
-                        className={`border rounded-xl overflow-hidden transition-all ${isUrgent ? 'border-slate-300 bg-slate-50' : 'border-primary/20 bg-card'}`}>
+                        className={`border rounded-xl overflow-hidden transition-all ${idx % 2 === 0 ? 'border-primary/20 bg-card' : 'border-primary/30 bg-primary/5'}`}>
 
                         {/* Main card content */}
                         <div className="p-5 grid grid-cols-1 lg:grid-cols-3 gap-5">

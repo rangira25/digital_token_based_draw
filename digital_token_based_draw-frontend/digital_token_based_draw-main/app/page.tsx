@@ -40,12 +40,36 @@ import type { ComponentType } from "react";
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const whoUses = [
-  { icon: IconMicrophone, title: "Content Creators", desc: "Raffle exclusive prizes and monetise the craft you already love." },
-  { icon: IconBuildingStore, title: "Brands", desc: "Run engaging prize draws that drive sales and brand loyalty." },
-  { icon: IconHeartHandshake, title: "Charities", desc: "Raise vital funds with raffles supporters are excited to enter." },
-  { icon: IconBuilding, title: "Businesses", desc: "Turn everyday prizes and experiences into new revenue streams." },
-  { icon: IconTrophy, title: "Sports Clubs", desc: "Raffle signed kit and match access for fans and members." },
-  { icon: IconSchool, title: "Schools", desc: "Fund projects with community raffles that bring people together." },
+  {
+    icon: IconMicrophone,
+    title: "Content Creators",
+    desc: "Raffle exclusive prizes and monetise the craft you already love.",
+  },
+  {
+    icon: IconBuildingStore,
+    title: "Brands",
+    desc: "Run engaging prize draws that drive sales and brand loyalty.",
+  },
+  {
+    icon: IconHeartHandshake,
+    title: "Charities",
+    desc: "Raise vital funds with raffles supporters are excited to enter.",
+  },
+  {
+    icon: IconBuilding,
+    title: "Businesses",
+    desc: "Turn everyday prizes and experiences into new revenue streams.",
+  },
+  {
+    icon: IconTrophy,
+    title: "Sports Clubs",
+    desc: "Raffle signed kit and match access for fans and members.",
+  },
+  {
+    icon: IconSchool,
+    title: "Schools",
+    desc: "Fund projects with community raffles that bring people together.",
+  },
 ];
 
 const whyChoose = [
@@ -73,21 +97,76 @@ const whyChoose = [
 ];
 
 const stats = [
-  { icon: IconTicket, label: "Raffles hosted", target: 40000, format: (v: number) => `${(v / 1000).toFixed(0)}K+` },
-  { icon: IconTrophy, label: "Prizes won", target: 114000, format: (v: number) => `${(v / 1000).toFixed(0)}K+` },
-  { icon: IconPigMoney, label: "Revenue generated", target: 41, prefix: "£", suffix: "M+", format: (v: number) => `£${v}M+` },
-  { icon: IconStar, label: "Trusted users", target: 6, suffix: "M+", format: (v: number) => `${v}M+` },
+  {
+    icon: IconTicket,
+    label: "Raffles hosted",
+    target: 12,
+    format: (v: number) => `${(v / 1000).toFixed(0)}K+`,
+  },
+  {
+    icon: IconTrophy,
+    label: "Prizes won",
+    target: 12,
+    format: (v: number) => `${(v / 1000).toFixed(0)}K+`,
+  },
+  {
+    icon: IconPigMoney,
+    label: "Revenue generated",
+    target: 3,
+    prefix: "£",
+    suffix: "M+",
+    format: (v: number) => `£${v}M+`,
+  },
+  {
+    icon: IconStar,
+    label: "Trusted users",
+    target: 12,
+    suffix: "M+",
+    format: (v: number) => `${v}M+`,
+  },
 ];
 
 const tools = [
-  { icon: IconCreditCard, title: "Payments", desc: "Simple, risk-free payments portal that holds ticket revenue safely." },
-  { icon: IconTicket, title: "Ticket Issuing", desc: "Process tokens and tickets in real time to every winner." },
-  { icon: IconMail, title: "Email Invites", desc: "Create and send unlimited campaigns that reach your contacts." },
-  { icon: IconVideo, title: "Live Stream", desc: "Build trust and deeper connections by streaming your draw live." },
-  { icon: IconTag, title: "Promo Codes", desc: "Boost participation with promo codes that reward invitees." },
-  { icon: IconQrcode, title: "QR Codes", desc: "Generate customizable QR prints for posters, social media, or events." },
-  { icon: IconLink, title: "Affiliate Sales", desc: "Set affiliate controls and expand the reach of your raffle." },
-  { icon: IconSparkles, title: "More Every Day", desc: "A complete toolset, extended constantly for your success." },
+  {
+    icon: IconCreditCard,
+    title: "Payments",
+    desc: "Simple, risk-free payments portal that holds ticket revenue safely.",
+  },
+  {
+    icon: IconTicket,
+    title: "Ticket Issuing",
+    desc: "Process tokens and tickets in real time to every winner.",
+  },
+  {
+    icon: IconMail,
+    title: "Email Invites",
+    desc: "Create and send unlimited campaigns that reach your contacts.",
+  },
+  {
+    icon: IconVideo,
+    title: "Live Stream",
+    desc: "Build trust and deeper connections by streaming your draw live.",
+  },
+  {
+    icon: IconTag,
+    title: "Promo Codes",
+    desc: "Boost participation with promo codes that reward invitees.",
+  },
+  {
+    icon: IconQrcode,
+    title: "QR Codes",
+    desc: "Generate customizable QR prints for posters, social media, or events.",
+  },
+  {
+    icon: IconLink,
+    title: "Affiliate Sales",
+    desc: "Set affiliate controls and expand the reach of your raffle.",
+  },
+  {
+    icon: IconSparkles,
+    title: "More Every Day",
+    desc: "A complete toolset, extended constantly for your success.",
+  },
 ];
 
 const steps = [
@@ -139,8 +218,12 @@ function SectionHeading({
 }) {
   return (
     <div className="max-w-2xl mx-auto text-center space-y-3 mb-14">
-      <p className="text-sm font-semibold uppercase tracking-widest text-primary">{eyebrow}</p>
-      <h2 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">{title}</h2>
+      <p className="text-sm font-semibold uppercase tracking-widest text-primary">
+        {eyebrow}
+      </p>
+      <h2 className="text-3xl sm:text-4xl font-bold text-foreground text-balance">
+        {title}
+      </h2>
       {subtitle && <p className="text-muted-foreground text-lg">{subtitle}</p>}
     </div>
   );
@@ -161,7 +244,10 @@ export default function Home() {
       {/* ── Navigation ── */}
       <header className="fixed top-0 w-full z-50 border-b border-primary/10 bg-white/85 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <button onClick={() => router.push("/")} className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => router.push("/")}
+            className="flex items-center gap-2.5 shrink-0"
+          >
             <span className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center shadow-sm">
               <IconTicket size={20} stroke={1.8} />
             </span>
@@ -171,14 +257,32 @@ export default function Home() {
           </button>
 
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-foreground/80">
-            <a href="#for-hosts" className="hover:text-primary transition-colors">For Hosts</a>
-            <a href="#for-entrants" className="hover:text-primary transition-colors">For Entrants</a>
-            <a href="#tools" className="hover:text-primary transition-colors">Features</a>
-            <a href="#how" className="hover:text-primary transition-colors">How It Works</a>
+            <a
+              href="#for-hosts"
+              className="hover:text-primary transition-colors"
+            >
+              For Hosts
+            </a>
+            <a
+              href="#for-entrants"
+              className="hover:text-primary transition-colors"
+            >
+              For Entrants
+            </a>
+            <a href="#tools" className="hover:text-primary transition-colors">
+              Features
+            </a>
+            <a href="#how" className="hover:text-primary transition-colors">
+              How It Works
+            </a>
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" className="text-foreground hover:text-primary" onClick={() => router.push("/auth")}>
+            <Button
+              variant="ghost"
+              className="text-foreground hover:text-primary"
+              onClick={() => router.push("/auth")}
+            >
               Sign In
             </Button>
             <Button
@@ -189,8 +293,16 @@ export default function Home() {
             </Button>
           </div>
 
-          <button className="md:hidden text-foreground p-2" onClick={() => setMobileOpen(o => !o)} aria-label="Menu">
-            {mobileOpen ? <IconX size={24} stroke={1.5} /> : <IconMenu size={24} stroke={1.5} />}
+          <button
+            className="md:hidden text-foreground p-2"
+            onClick={() => setMobileOpen((o) => !o)}
+            aria-label="Menu"
+          >
+            {mobileOpen ? (
+              <IconX size={24} stroke={1.5} />
+            ) : (
+              <IconMenu size={24} stroke={1.5} />
+            )}
           </button>
         </div>
 
@@ -208,14 +320,30 @@ export default function Home() {
                   { label: "For Entrants", href: "#for-entrants" },
                   { label: "Features", href: "#tools" },
                   { label: "How It Works", href: "#how" },
-                ].map(l => (
-                  <a key={l.label} href={l.href} onClick={() => setMobileOpen(false)} className="text-foreground/80 hover:text-primary transition-colors">
+                ].map((l) => (
+                  <a
+                    key={l.label}
+                    href={l.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="text-foreground/80 hover:text-primary transition-colors"
+                  >
                     {l.label}
                   </a>
                 ))}
                 <div className="flex gap-3 pt-2">
-                  <Button variant="outline" className="flex-1" onClick={() => router.push("/auth")}>Sign In</Button>
-                  <Button className="flex-1 bg-[#3bb82e] text-white hover:bg-[#288C1D] rounded-full" onClick={() => router.push("/auth")}>Get Started</Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => router.push("/auth")}
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    className="flex-1 bg-[#3bb82e] text-white hover:bg-[#288C1D] rounded-full"
+                    onClick={() => router.push("/auth")}
+                  >
+                    Get Started
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -236,7 +364,7 @@ export default function Home() {
             className="h-full w-full object-cover"
             poster="/placeholder-logo.svg"
           >
-            <source src="/casino-people.mp4" type="video/mp4" />
+            <source src="/casino-roulette.mp4" type="video/mp4" />
           </video>
           {/* Soft neutral overlay keeps white text readable while letting the video show through */}
           <div className="absolute inset-0 bg-slate-500/35" />
@@ -251,8 +379,7 @@ export default function Home() {
             className="space-y-7"
           >
             <div className="inline-flex items-center gap-2 bg-white/15 border border-white/25 rounded-full px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm shadow-sm mx-auto">
-              <IconStar size={14} stroke={2} className="text-amber-300" />
-              Trusted by 6 Million+ users worldwide
+              Trusted Fair Draws
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] text-balance text-white">
@@ -262,9 +389,10 @@ export default function Home() {
             </h1>
 
             <p className="text-lg text-white/85 max-w-2xl mx-auto">
-              Whether you're raising funds as a creator, engaging fans as a brand, or
-              rallying supporters for a cause — Digital Draws runs fair, secure,
-              token-based raffles that turn excitement into real results.
+              Whether you're raising funds as a creator, engaging fans as a
+              brand, or rallying supporters for a cause Digital Draws runs fair,
+              secure, token-based raffles that turn excitement into real
+              results.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
@@ -275,8 +403,7 @@ export default function Home() {
                 Start a Raffle Today <IconArrowRight size={18} stroke={2} />
               </Button>
               <Button
-                variant="outline"
-                className="px-8 py-3.5 text-base rounded-full border-white/50 text-white hover:bg-white/10"
+                className="bg-[#3bb82e] text-white hover:bg-[#288C1D] px-8 py-3.5 text-base rounded-full shadow-lg"
                 onClick={() => router.push("/auth")}
               >
                 Join as Participant
@@ -284,8 +411,15 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-2 pt-2">
-              {["Independent Draws", "Token-Based Entry", "Real-Time Results"].map(f => (
-                <span key={f} className="inline-flex items-center gap-1.5 text-xs text-white/90 bg-white/15 border border-white/20 rounded-full px-3 py-1.5 backdrop-blur-sm">
+              {[
+                "Independent Draws",
+                "Token-Based Entry",
+                "Real-Time Results",
+              ].map((f) => (
+                <span
+                  key={f}
+                  className="inline-flex items-center gap-1.5 text-xs text-white/90 bg-white/15 border border-white/20 rounded-full px-3 py-1.5 backdrop-blur-sm"
+                >
                   <IconCheck size={12} stroke={2.5} /> {f}
                 </span>
               ))}
@@ -309,7 +443,10 @@ export default function Home() {
               { icon: IconSchool, label: "Schools" },
               { icon: IconBuilding, label: "Businesses" },
             ].map(({ icon: Ic, label }) => (
-              <div key={label} className="flex items-center gap-2 text-foreground/50">
+              <div
+                key={label}
+                className="flex items-center gap-2 text-foreground/50"
+              >
                 <Ic size={20} stroke={1.5} />
                 <span className="font-semibold text-sm">{label}</span>
               </div>
@@ -319,7 +456,10 @@ export default function Home() {
       </section>
 
       {/* ── Who Uses Digital Draws ── */}
-      <section id="for-entrants" className="py-20 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden">
+      <section
+        id="for-entrants"
+        className="py-20 px-4 sm:px-6 lg:px-8 bg-white overflow-hidden"
+      >
         <div className="max-w-7xl mx-auto">
           <SectionHeading
             eyebrow="Who Uses Digital Draws"
@@ -336,8 +476,12 @@ export default function Home() {
                   <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
                     <c.icon size={28} stroke={1.6} />
                   </div>
-                  <h3 className="font-semibold text-foreground text-xl mb-2">{c.title}</h3>
-                  <p className="text-base text-muted-foreground leading-relaxed">{c.desc}</p>
+                  <h3 className="font-semibold text-foreground text-xl mb-2">
+                    {c.title}
+                  </h3>
+                  <p className="text-base text-muted-foreground leading-relaxed">
+                    {c.desc}
+                  </p>
                 </div>
               ))}
             </div>
@@ -372,10 +516,16 @@ export default function Home() {
                   </span>
                 </div>
                 <h3 className="font-bold text-foreground text-lg">{s.title}</h3>
-                <p className="text-sm text-muted-foreground max-w-xs mx-auto">{s.desc}</p>
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  {s.desc}
+                </p>
                 {i < steps.length - 1 && (
                   <div className="hidden md:block absolute top-8 left-[calc(50%+3.5rem)] w-[calc(100%-7rem)] text-primary/50">
-                    <IconChevronRight size={24} stroke={2} className="mx-auto" />
+                    <IconChevronRight
+                      size={24}
+                      stroke={2}
+                      className="mx-auto"
+                    />
                   </div>
                 )}
               </motion.div>
@@ -401,11 +551,17 @@ export default function Home() {
                 transition={{ duration: 0.45, delay: i * 0.1 }}
                 className="bg-white rounded-2xl border border-primary/10 p-8 hover:border-primary/40 hover:shadow-xl transition-all duration-300"
               >
-                <div className={`w-14 h-14 rounded-2xl ${f.bg} ${f.color} flex items-center justify-center mb-5`}>
+                <div
+                  className={`w-14 h-14 rounded-2xl ${f.bg} ${f.color} flex items-center justify-center mb-5`}
+                >
                   <f.icon size={28} stroke={1.6} />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2.5 text-balance">{f.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
+                <h3 className="text-xl font-bold text-foreground mb-2.5 text-balance">
+                  {f.title}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {f.desc}
+                </p>
               </motion.div>
             ))}
           </div>
@@ -415,14 +571,32 @@ export default function Home() {
       {/* ── Stats ── */}
       <section className="relative overflow-hidden py-20 px-4 sm:px-6 lg:px-8 bg-slate-200 text-white">
         <div className="absolute inset-0">
-          <video autoPlay muted loop playsInline disablePictureInPicture className="h-full w-full object-cover" poster="/placeholder-logo.svg">
-            <source src="/casino-people.mp4" type="video/mp4" />
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            disablePictureInPicture
+            className="h-full w-full object-cover"
+            poster="/placeholder-logo.svg"
+          >
+            <source src="/casino-roulette.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-slate-500/45" />
         </div>
-        <div ref={statsRef} className="relative max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {stats.map(s => (
-            <StatCard key={s.label} icon={s.icon} label={s.label} target={s.target} format={s.format} active={statsInView} />
+        <div
+          ref={statsRef}
+          className="relative max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center"
+        >
+          {stats.map((s) => (
+            <StatCard
+              key={s.label}
+              icon={s.icon}
+              label={s.label}
+              target={s.target}
+              format={s.format}
+              active={statsInView}
+            />
           ))}
         </div>
       </section>
@@ -448,7 +622,9 @@ export default function Home() {
                 <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-white transition-colors">
                   <t.icon size={22} stroke={1.6} />
                 </div>
-                <h3 className="font-semibold text-foreground mb-1">{t.title}</h3>
+                <h3 className="font-semibold text-foreground mb-1">
+                  {t.title}
+                </h3>
                 <p className="text-sm text-muted-foreground">{t.desc}</p>
               </motion.div>
             ))}
@@ -471,7 +647,8 @@ export default function Home() {
             Ready to Host Your First Raffle?
           </h2>
           <p className="text-white/85 text-lg mb-9 relative">
-            Join millions of hosts and entrants who trust Digital Draws for fair, secure, and exciting competitions.
+            Join millions of hosts and entrants who trust Digital Draws for
+            fair, secure, and exciting competitions.
           </p>
           <div className="flex flex-wrap justify-center gap-4 relative">
             <Button
@@ -482,7 +659,7 @@ export default function Home() {
             </Button>
             <Button
               variant="outline"
-              className="px-9 py-3.5 text-base rounded-xl border-white/40 text-white hover:bg-white/10"
+              className="px-9 py-3.5 text-base rounded-xl bg-white/20 border-white/70 text-white hover:bg-white/30 hover:border-white"
               onClick={() => router.push("/auth")}
             >
               Learn How It Works
@@ -500,16 +677,24 @@ export default function Home() {
                 <span className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center">
                   <IconTicket size={20} stroke={1.8} />
                 </span>
-                <span className="font-bold text-lg text-white">Digital<span className="text-primary">Draws</span></span>
+                <span className="font-bold text-lg text-white">
+                  Digital<span className="text-primary">Draws</span>
+                </span>
               </div>
               <p className="text-sm text-white/50 max-w-xs">
-                The fairest way to run raffles, giveaways, and sweepstakes — powered by independent, token-based draws.
+                The fairest way to run raffles, giveaways, and sweepstakes —
+                powered by independent, token-based draws.
               </p>
             </div>
             {[
               {
                 title: "Product",
-                links: ["Features", "Pricing", "How It Works", "Success Toolkit"],
+                links: [
+                  "Features",
+                  "Pricing",
+                  "How It Works",
+                  "Success Toolkit",
+                ],
               },
               {
                 title: "Company",
@@ -517,15 +702,22 @@ export default function Home() {
               },
               {
                 title: "Legal",
-                links: ["Terms of Service", "Privacy Policy", "Responsible Play", "Cookie Policy"],
+                links: [
+                  "Terms of Service",
+                  "Privacy Policy",
+                  "Responsible Play",
+                  "Cookie Policy",
+                ],
               },
-            ].map(col => (
+            ].map((col) => (
               <div key={col.title}>
                 <p className="text-white font-semibold mb-4">{col.title}</p>
                 <ul className="space-y-2.5 text-sm">
-                  {col.links.map(l => (
+                  {col.links.map((l) => (
                     <li key={l}>
-                      <a className="text-white/50 hover:text-primary transition-colors cursor-pointer">{l}</a>
+                      <a className="text-white/50 hover:text-primary transition-colors cursor-pointer">
+                        {l}
+                      </a>
                     </li>
                   ))}
                 </ul>
@@ -570,7 +762,9 @@ function StatCard({
       <div className="mx-auto w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center">
         <Icon size={26} stroke={1.6} />
       </div>
-      <p className="text-3xl sm:text-4xl font-bold text-white">{format(value)}</p>
+      <p className="text-3xl sm:text-4xl font-bold text-white">
+        {format(value)}
+      </p>
       <p className="text-sm text-white/75">{label}</p>
     </div>
   );

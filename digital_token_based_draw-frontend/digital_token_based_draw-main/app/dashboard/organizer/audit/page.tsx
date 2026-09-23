@@ -115,6 +115,21 @@ function InvestigationBadge({ status }: { status: InvestigationStatus }) {
   );
 }
 
+const ACTION_COLORS: [RegExp, string][] = [
+  [/login|logout|verify|request|attempt|failed/i, 'bg-red-500/20 text-red-400'],
+  [/create|register|mint|issue|assign|enroll/i, 'bg-green-500/20 text-green-400'],
+  [/update|edit|change|modify|upload|generate/i, 'bg-blue-500/20 text-blue-400'],
+  [/delete|remove|revoke|cancel|disable|enable/i, 'bg-orange-500/20 text-orange-400'],
+  [/view|list|export|open|read/i, 'bg-primary/20 text-primary'],
+];
+
+function actionColor(action: string): string {
+  for (const [re, cls] of ACTION_COLORS) {
+    if (re.test(action)) return cls;
+  }
+  return 'bg-primary/20 text-primary';
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AuditLogPage() {
@@ -431,7 +446,7 @@ export default function AuditLogPage() {
                   <table className="w-full">
                     <thead className="border-b border-primary/20 bg-muted">
                       <tr>
-                        {['Timestamp', 'Category', 'Action / Details', 'Actor', 'IP / Location', 'Severity', 'Status', ''].map(h => (
+                        {['Timestamp', 'Action / Details', 'Actor', ''].map(h => (
                           <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                             {h}
                           </th>
@@ -444,38 +459,25 @@ export default function AuditLogPage() {
                           <motion.tr key={log.id}
                             initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0 }} transition={{ delay: idx * 0.02 }}
-                            className={`hover:bg-primary/[0.04] transition-colors ${log.flagged ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500/50' : ''}`}
+                            className={`hover:bg-primary/[0.04] transition-colors ${log.flagged ? 'bg-yellow-500/5 border-l-2 border-l-yellow-500/50' : idx % 2 === 0 ? '' : 'bg-primary/[0.04]'}`}
                           >
-                            <td className="px-4 py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                            <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                               {log.timestamp}
-                            </td>
-                            <td className="px-4 py-3">
-                              <CategoryBadge category={log.category} />
                             </td>
                             <td className="px-4 py-3 max-w-xs">
                               <div className="flex items-center gap-1.5">
                                 {log.flagged && <span className="text-yellow-400 text-xs shrink-0"><IconFlag size={12} stroke={2} /></span>}
-                                <p className="text-sm font-medium text-foreground">{log.action}</p>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${actionColor(log.action)}`}>{log.action}</span>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{log.details}</p>
+                              <p className="text-xs text-muted-foreground mt-1 truncate">{log.details}</p>
                             </td>
                             <td className="px-4 py-3">
                               <p className="text-xs text-foreground">{log.actor === 'system' ? <><IconSettings size={12} stroke={2} /> System</> : log.actor}</p>
                               <p className="text-xs text-muted-foreground capitalize">{log.actorRole}</p>
                             </td>
                             <td className="px-4 py-3">
-                              <p className="text-xs font-mono text-foreground">{log.ip}</p>
-                              <p className="text-xs text-muted-foreground">{log.location}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              <SeverityBadge severity={log.severity} />
-                            </td>
-                            <td className="px-4 py-3">
-                              <StatusBadge status={log.status} />
-                            </td>
-                            <td className="px-4 py-3">
                               <button onClick={() => { setSelectedLog(log); setModal('detail'); }}
-                                className="text-xs text-primary hover:text-primary/80 transition-colors font-mono active:scale-95">
+                                className="text-xs text-primary hover:text-primary/80 transition-colors active:scale-95">
                                 View →
                               </button>
                             </td>
@@ -491,7 +493,7 @@ export default function AuditLogPage() {
                   </div>
                 )}
                 <div className="border-t border-primary/10 px-4 py-3 bg-muted/30 flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground font-mono">
+                  <p className="text-xs text-muted-foreground">
                     {filteredLogs.length} of {logs.length} events
                   </p>
                   <Button onClick={() => handleExport(filteredLogs, 'excel')} variant="outline" size="sm"
@@ -611,29 +613,6 @@ export default function AuditLogPage() {
                         <span className="text-foreground">{row.value}</span>
                       </div>
                     ))}
-                  </div>
-
-                  {/* IP & Device */}
-                  <div className="bg-muted/30 border border-primary/20 rounded-lg p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-mono">Network & Device</p>
-                    <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-                      <div>
-                        <p className="text-muted-foreground mb-0.5">IP Address</p>
-                        <p className="text-foreground">{selectedLog.ip}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-0.5">Location</p>
-                        <p className="text-foreground">{selectedLog.location}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-0.5">Device</p>
-                        <p className="text-foreground">{selectedLog.device}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground mb-0.5">Fingerprint</p>
-                        <p className="text-primary">{selectedLog.deviceFingerprint}</p>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Timestamp Verification */}

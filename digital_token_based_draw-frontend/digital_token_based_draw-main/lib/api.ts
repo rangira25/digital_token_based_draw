@@ -139,6 +139,8 @@ export const apiUrls = {
     setup2FA: '/auth/2fa/setup',
     verify2FA: '/auth/2fa/verify',
     disable2FA: '/auth/2fa/disable',
+    verifyLogin2FA: '/auth/2fa/verify-login',
+    resend2FA: '/auth/2fa/resend',
     topup: '/auth/topup',
   },
   // Draws

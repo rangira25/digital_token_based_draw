@@ -82,25 +82,6 @@ export default function AnalyticsPage() {
   const [reportDateRange, setReportDateRange] = useState('7d');
   const [showPreview, setShowPreview] = useState(false);
 
-  // Scheduled Reports
-  const [schedules, setSchedules] = useState([
-    { id: 1, name: 'Weekly Summary', frequency: 'Weekly', day: 'Monday', time: '08:00', format: 'PDF', recipients: 3, active: true },
-    { id: 2, name: 'Monthly Deep Dive', frequency: 'Monthly', day: '1st', time: '09:00', format: 'Excel', recipients: 5, active: true },
-    { id: 3, name: 'Daily Snapshot', frequency: 'Daily', day: '—', time: '07:00', format: 'PDF', recipients: 1, active: false },
-  ]);
-  const [showScheduleForm, setShowScheduleForm] = useState(false);
-  const [newSchedule, setNewSchedule] = useState({ name: '', frequency: 'Weekly', time: '08:00', format: 'PDF' });
-
-  // Distribution Manager
-  const [recipients, setRecipients] = useState([
-    { id: 1, name: 'Alice Johnson', email: 'alice@org.com', role: 'Admin', reports: ['Weekly Summary', 'Monthly Deep Dive'] },
-    { id: 2, name: 'Bob Chen', email: 'bob@org.com', role: 'Manager', reports: ['Monthly Deep Dive'] },
-    { id: 3, name: 'Carol Smith', email: 'carol@org.com', role: 'Analyst', reports: ['Weekly Summary', 'Monthly Deep Dive', 'Daily Snapshot'] },
-    { id: 4, name: 'David Park', email: 'david@org.com', role: 'Executive', reports: ['Monthly Deep Dive'] },
-  ]);
-  const [newRecipient, setNewRecipient] = useState({ name: '', email: '', role: 'Analyst' });
-  const [showAddRecipient, setShowAddRecipient] = useState(false);
-
   // Executive Summary
   const [summaryGenerating, setSummaryGenerating] = useState(false);
   const [summaryGenerated, setSummaryGenerated] = useState(false);
@@ -109,7 +90,7 @@ export default function AnalyticsPage() {
   // The synchronous guard fires on every refresh before the context
   // has read from storage, so we defer until loading is false.
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== 'organizer')) {
+    if (!isLoading && (!user || (user.role !== 'organizer' && user.role !== 'admin'))) {
       router.push('/auth');
     }
   }, [user, isLoading, router]);
@@ -134,9 +115,17 @@ export default function AnalyticsPage() {
     );
   }
 
-  if (!user || user.role !== 'organizer') return null;
+  if (!user || (user.role !== 'organizer' && user.role !== 'admin')) return null;
 
   // Merge real analytics data over mock defaults
+  const kpiColors = [
+    'bg-card border-primary/20',
+    'bg-[#3BB82E]/10 border-[#3BB82E]/30',
+    'bg-blue-500/10 border-blue-500/30',
+    'bg-orange-500/10 border-orange-500/30',
+    'bg-violet-500/10 border-violet-500/30',
+    'bg-emerald-500/10 border-emerald-500/30',
+  ];
   const mergedKpis = analyticsDataReal ? [
     { label: 'Total Draws', value: String(analyticsDataReal.draws?.total_draws || 0), change: '', trend: 'up' as const },
     { label: 'Active Draws', value: String(analyticsDataReal.draws?.active_draws || 0), change: '', trend: 'up' as const },
@@ -199,12 +188,6 @@ export default function AnalyticsPage() {
     }
   };
 
-  const toggleMetric = (id: string) => {
-    setSelectedMetrics(prev =>
-      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-    );
-  };
-
   const generateSummary = () => {
     setSummaryGenerating(true);
     setSummaryGenerated(false);
@@ -212,29 +195,6 @@ export default function AnalyticsPage() {
       setSummaryGenerating(false);
       setSummaryGenerated(true);
     }, 2000);
-  };
-
-  const addSchedule = () => {
-    if (!newSchedule.name) return;
-    setSchedules(prev => [...prev, {
-      id: Date.now(),
-      name: newSchedule.name,
-      frequency: newSchedule.frequency,
-      day: newSchedule.frequency === 'Daily' ? '—' : 'Monday',
-      time: newSchedule.time,
-      format: newSchedule.format,
-      recipients: 0,
-      active: true,
-    }]);
-    setShowScheduleForm(false);
-    setNewSchedule({ name: '', frequency: 'Weekly', time: '08:00', format: 'PDF' });
-  };
-
-  const addRecipient = () => {
-    if (!newRecipient.name || !newRecipient.email) return;
-    setRecipients(prev => [...prev, { id: Date.now(), ...newRecipient, reports: [] }]);
-    setShowAddRecipient(false);
-    setNewRecipient({ name: '', email: '', role: 'Analyst' });
   };
 
   return (
@@ -283,9 +243,9 @@ export default function AnalyticsPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
-              className="bg-card border border-primary/20 rounded-lg p-6 space-y-2"
+              className={`border rounded-lg p-6 space-y-2 ${kpiColors[idx % kpiColors.length]}`}
             >
-              <p className="text-sm text-muted-foreground font-mono uppercase">{kpi.label}</p>
+              <p className="text-sm text-muted-foreground uppercase">{kpi.label}</p>
               <div className="flex items-end justify-between gap-4">
                 <p className="text-3xl font-bold text-foreground">{kpi.value}</p>
                 <span className={`text-sm font-mono ${kpi.trend === 'up' ? 'text-green-400' : 'text-red-400'}`}>
@@ -791,416 +751,6 @@ export default function AnalyticsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        </motion.div>
-
-        {/* ── Custom Report Builder (NEW) ────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
-        >
-          <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-foreground">Custom Report Builder</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Select metrics, configure options, and preview before exporting
-              </p>
-            </div>
-
-            <div className="grid lg:grid-cols-3 gap-6">
-              {/* Metric Selection */}
-              <div className="lg:col-span-2 space-y-3">
-                <p className="text-xs font-mono text-muted-foreground uppercase">Select Metrics to Include</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {REPORT_METRICS.map(metric => (
-                    <button
-                      key={metric.id}
-                      onClick={() => toggleMetric(metric.id)}
-                      className={`flex items-center gap-3 p-3 rounded-lg border text-left text-sm transition-all ${
-                        selectedMetrics.includes(metric.id)
-                          ? 'bg-slate-900 border-slate-900 text-white'
-                          : 'bg-muted/30 border-primary/10 text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                      }`}
-                    >
-                      <span
-                        className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center text-xs ${
-                          selectedMetrics.includes(metric.id)
-                            ? 'bg-white border-white text-slate-900'
-                            : 'border-primary/30'
-                        }`}
-                      >
-                        {selectedMetrics.includes(metric.id) ? <IconCheck size={12} stroke={3} /> : ''}
-                      </span>
-                      {metric.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Config Panel */}
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <p className="text-xs font-mono text-muted-foreground uppercase">Date Range</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    {(['7d', '30d', '90d', 'Custom'] as const).map(r => (
-                      <button
-                        key={r}
-                        onClick={() => setReportDateRange(r)}
-                        className={`py-2 rounded text-xs font-mono transition-all ${
-                          reportDateRange === r
-                            ? 'bg-slate-800 text-white'
-                            : 'border border-primary/20 text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-mono text-muted-foreground uppercase">Output Format</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    {(['pdf', 'excel'] as const).map(fmt => (
-                      <button
-                        key={fmt}
-                        onClick={() => setReportFormat(fmt)}
-                        className={`py-2 rounded text-xs font-mono uppercase transition-all ${
-                          reportFormat === fmt
-                            ? 'bg-slate-800 text-white'
-                            : 'border border-primary/20 text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        {fmt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-mono text-muted-foreground uppercase">
-                    Coverage: {selectedMetrics.length}/{REPORT_METRICS.length} metrics
-                  </p>
-                  <div className="h-1.5 bg-muted rounded overflow-hidden">
-                    <div
-                      className="h-full bg-slate-300 rounded transition-all duration-300"
-                      style={{ width: `${(selectedMetrics.length / REPORT_METRICS.length) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Button
-                    onClick={() => setShowPreview(true)}
-                    disabled={selectedMetrics.length === 0}
-                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm"
-                  >
-                    Preview Report
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={selectedMetrics.length === 0}
-                    className="w-full font-mono text-sm"
-                    onClick={() => handleReportExport(reportFormat)}
-                  >
-                    Export {reportFormat.toUpperCase()}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ── Scheduled Reports (NEW) ────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-foreground">Scheduled Reports</h3>
-                <p className="text-sm text-muted-foreground mt-1">Automate report delivery on your schedule</p>
-              </div>
-              <Button
-                onClick={() => setShowScheduleForm(v => !v)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm"
-              >
-                + New Schedule
-              </Button>
-            </div>
-
-            {/* New Schedule Form */}
-            <AnimatePresence>
-              {showScheduleForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-4 bg-muted/40 rounded-lg border border-primary/10 space-y-4">
-                    <p className="text-xs font-mono text-muted-foreground uppercase">New Schedule Configuration</p>
-                    <div className="grid md:grid-cols-4 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Report Name</label>
-                        <input
-                          type="text"
-                          value={newSchedule.name}
-                          onChange={e => setNewSchedule(s => ({ ...s, name: e.target.value }))}
-                          placeholder="e.g. Weekly Digest"
-                          className="w-full px-3 py-2 bg-background border border-primary/20 rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-slate-400"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Frequency</label>
-                        <select
-                          value={newSchedule.frequency}
-                          onChange={e => setNewSchedule(s => ({ ...s, frequency: e.target.value }))}
-                          className="w-full px-3 py-2 bg-background border border-primary/20 rounded text-sm text-foreground focus:outline-none focus:border-slate-400"
-                        >
-                          <option>Daily</option>
-                          <option>Weekly</option>
-                          <option>Monthly</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Delivery Time</label>
-                        <input
-                          type="time"
-                          value={newSchedule.time}
-                          onChange={e => setNewSchedule(s => ({ ...s, time: e.target.value }))}
-                          className="w-full px-3 py-2 bg-background border border-primary/20 rounded text-sm text-foreground focus:outline-none focus:border-slate-400"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Format</label>
-                        <select
-                          value={newSchedule.format}
-                          onChange={e => setNewSchedule(s => ({ ...s, format: e.target.value }))}
-                          className="w-full px-3 py-2 bg-background border border-primary/20 rounded text-sm text-foreground focus:outline-none focus:border-slate-400"
-                        >
-                          <option>PDF</option>
-                          <option>Excel</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={addSchedule}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
-                      >
-                        Save Schedule
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowScheduleForm(false)}
-                        className="font-mono text-xs"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Schedules List */}
-            <div className="space-y-2">
-              {schedules.map((schedule, idx) => (
-                <motion.div
-                  key={schedule.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.06 }}
-                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border border-primary/10 hover:border-primary/20 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-2 h-2 rounded-full ${
-                        schedule.active ? 'bg-green-400' : 'bg-muted-foreground'
-                      }`}
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{schedule.name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">
-                        {schedule.frequency}
-                        {schedule.day !== '—' ? ` · ${schedule.day}` : ''}
-                        {' · '}{schedule.time} · {schedule.format}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {schedule.recipients} recipient{schedule.recipients !== 1 ? 's' : ''}
-                    </span>
-                    {/* Toggle */}
-                    <button
-                      onClick={() =>
-                        setSchedules(prev =>
-                          prev.map(s => s.id === schedule.id ? { ...s, active: !s.active } : s)
-                        )
-                      }
-                      className={`relative w-10 h-5 rounded-full transition-all ${
-                        schedule.active ? 'bg-slate-300' : 'bg-muted'
-                      }`}
-                    >
-                      <span
-                        className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${
-                          schedule.active ? 'left-5' : 'left-0.5'
-                        }`}
-                      />
-                    </button>
-                    <button
-                      onClick={() => setSchedules(prev => prev.filter(s => s.id !== schedule.id))}
-                      className="text-muted-foreground hover:text-red-400 text-xs transition-colors"
-                    >
-                      <IconX size={18} stroke={1.5} />
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ── Report Distribution Manager (NEW) ──────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-        >
-          <div className="bg-card border border-primary/20 rounded-lg p-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-foreground">Distribution Manager</h3>
-                <p className="text-sm text-muted-foreground mt-1">Manage who receives your automated reports</p>
-              </div>
-              <Button
-                onClick={() => setShowAddRecipient(v => !v)}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-sm"
-              >
-                + Add Recipient
-              </Button>
-            </div>
-
-            {/* Add Recipient Form */}
-            <AnimatePresence>
-              {showAddRecipient && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-4 bg-muted/40 rounded-lg border border-primary/10 space-y-4">
-                    <div className="grid md:grid-cols-3 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Full Name</label>
-                        <input
-                          type="text"
-                          value={newRecipient.name}
-                          onChange={e => setNewRecipient(r => ({ ...r, name: e.target.value }))}
-                          placeholder="Jane Doe"
-                          className="w-full px-3 py-2 bg-background border border-primary/20 rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-slate-400"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Email Address</label>
-                        <input
-                          type="email"
-                          value={newRecipient.email}
-                          onChange={e => setNewRecipient(r => ({ ...r, email: e.target.value }))}
-                          placeholder="jane@org.com"
-                          className="w-full px-3 py-2 bg-background border border-primary/20 rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-slate-400"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs text-muted-foreground">Role</label>
-                        <select
-                          value={newRecipient.role}
-                          onChange={e => setNewRecipient(r => ({ ...r, role: e.target.value }))}
-                          className="w-full px-3 py-2 bg-background border border-primary/20 rounded text-sm text-foreground focus:outline-none focus:border-slate-400"
-                        >
-                          <option>Executive</option>
-                          <option>Admin</option>
-                          <option>Manager</option>
-                          <option>Analyst</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={addRecipient}
-                        className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs"
-                      >
-                        Add Recipient
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAddRecipient(false)}
-                        className="font-mono text-xs"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Recipients Table */}
-            <div className="space-y-1">
-              <div className="grid grid-cols-4 text-xs font-mono text-muted-foreground uppercase px-4 pb-2 border-b border-primary/10">
-                <span>Name</span>
-                <span>Email</span>
-                <span>Role</span>
-                <span>Subscriptions</span>
-              </div>
-              {recipients.map((recipient, idx) => (
-                <motion.div
-                  key={recipient.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: idx * 0.05 }}
-                  className="grid grid-cols-4 items-center p-4 rounded-lg bg-muted/20 hover:bg-muted/40 transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700 flex-shrink-0">
-                      {recipient.name.charAt(0)}
-                    </div>
-                    <span className="text-sm text-foreground">{recipient.name}</span>
-                  </div>
-                  <span className="text-xs font-mono text-muted-foreground truncate pr-2">{recipient.email}</span>
-                  <span
-                    className={`text-xs font-mono px-2 py-0.5 rounded-full w-fit border ${
-                      recipient.role === 'Executive'
-                        ? 'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                        : recipient.role === 'Admin'
-                        ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                        : recipient.role === 'Manager'
-                        ? 'bg-slate-100 text-slate-700 border-slate-200'
-                        : 'bg-muted text-muted-foreground border-primary/20'
-                    }`}
-                  >
-                    {recipient.role}
-                  </span>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {recipient.reports.length} report{recipient.reports.length !== 1 ? 's' : ''}
-                    </span>
-                    <button
-                      onClick={() => setRecipients(prev => prev.filter(r => r.id !== recipient.id))}
-                      className="text-xs text-muted-foreground hover:text-red-400 transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
           </div>
         </motion.div>
 

@@ -36,12 +36,14 @@ export default function ParticipantDashboard() {
 
     const fetchData = async () => {
       try {
-        const [drawsRes, tokensRes] = await Promise.all([
+        const [drawsRes, tokensRes, entriesRes] = await Promise.all([
           api<{ success: boolean; data: any[] }>(apiUrls.draws.list),
           api<{ success: boolean; data: any[] }>(apiUrls.tokens.myTokens).catch(() => ({ data: [] })),
+          api<{ success: boolean; data: any[] }>(apiUrls.tokens.myEntries).catch(() => ({ data: [] })),
         ]);
         setDraws(drawsRes.data || []);
         setMyTokens(tokensRes.data || []);
+        setMyWins((entriesRes.data || []).filter((e: any) => !!e.winner_id));
       } catch {} finally {
         setLoading(false);
       }
@@ -76,6 +78,14 @@ export default function ParticipantDashboard() {
     { label: 'My Tokens', value: myTokens.filter((t: any) => t.status === 'issued').length, icon: 'ticket' },
     { label: 'Draws Entered', value: enteredCount, icon: 'clock' },
     { label: 'My Wins', value: myWins.length, icon: 'trophy' },
+  ];
+
+  const statCardColors = [
+    { border: 'border-primary/20', bg: 'bg-card', iconColor: 'text-primary', valueColor: 'text-slate-700' },
+    { border: 'border-primary/30', bg: 'bg-primary/5', iconColor: 'text-primary', valueColor: 'text-[#3BB82E]' },
+    { border: 'border-blue-500/30', bg: 'bg-blue-500/10', iconColor: 'text-blue-600', valueColor: 'text-blue-600' },
+    { border: 'border-orange-500/30', bg: 'bg-orange-500/10', iconColor: 'text-orange-600', valueColor: 'text-orange-600' },
+    { border: 'border-green-500/30', bg: 'bg-green-500/10', iconColor: 'text-green-600', valueColor: 'text-green-600' },
   ];
 
   const tokenChartData = [
@@ -117,16 +127,16 @@ export default function ParticipantDashboard() {
             <p className="text-muted-foreground">Explore draws and manage your entries.</p>
           </motion.div>
 
-          <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {stats.map((stat, idx) => (
               <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                className="bg-card border border-primary/20 rounded-lg p-4 space-y-2 hover:border-primary/40 transition-colors">
+                className={`border rounded-lg p-4 space-y-2 transition-colors ${statCardColors[idx].border} ${statCardColors[idx].bg} hover:border-primary/40`}>
                 <div className="flex items-center justify-between">
                   <p className="text-muted-foreground text-sm">{stat.label}</p>
-                  <span className="text-xl text-muted-foreground">{(() => { const Ic = iconMap[stat.icon]; return Ic ? <Ic size={20} stroke={1.5} /> : null; })()}</span>
+                  <span className={`text-xl ${statCardColors[idx].iconColor}`}>{(() => { const Ic = iconMap[stat.icon]; return Ic ? <Ic size={20} stroke={1.5} /> : null; })()}</span>
                 </div>
-                <p className="text-3xl font-bold text-slate-700">{stat.value}</p>
+                <p className={`text-3xl font-bold ${statCardColors[idx].valueColor}`}>{stat.value}</p>
                 {stat.label === 'Balance' && (
                   <Button onClick={() => setShowTopUp(true)} size="sm" className="w-full mt-1 bg-[#3BB82E] text-white hover:bg-[#288C1D] active:scale-95">
                     <IconPlus size={14} stroke={2} /> Top Up
@@ -208,7 +218,9 @@ export default function ParticipantDashboard() {
                 <motion.div key={draw.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 + idx * 0.05 }}
                   onClick={() => router.push('/dashboard/participant/draws')}
-                  className="p-4 bg-background border border-primary/20 rounded-lg hover:border-primary/40 cursor-pointer transition-all duration-300 group">
+                  className={`p-4 border rounded-lg hover:border-primary/40 cursor-pointer transition-all duration-300 group ${
+                    idx % 2 === 0 ? 'bg-background border-primary/20' : 'bg-primary/5 border-primary/30'
+                  }`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex-1">
                       <h3 className="font-semibold text-foreground group-hover:text-slate-700 transition-colors">{draw.title}</h3>

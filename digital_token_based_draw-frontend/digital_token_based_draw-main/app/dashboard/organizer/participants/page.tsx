@@ -103,16 +103,16 @@ export default function ParticipantsPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Total Participants', value: stats.total },
-              { label: 'Active', value: stats.active },
-              { label: 'Email Verified', value: stats.verified },
-              { label: 'Pending', value: stats.pending },
+{[ 
+              { label: 'Total Participants', value: stats.total, card: 'bg-card border-primary/20', text: 'text-foreground' },
+              { label: 'Active', value: stats.active, card: 'bg-[#3BB82E]/10 border-[#3BB82E]/30', text: 'text-[#288C1D]' },
+              { label: 'Email Verified', value: stats.verified, card: 'bg-blue-500/10 border-blue-500/30', text: 'text-blue-600' },
+              { label: 'Pending', value: stats.pending, card: 'bg-orange-500/10 border-orange-500/30', text: 'text-orange-600' },
             ].map((s, i) => (
               <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                className="bg-card border border-primary/20 rounded-lg p-4">
+                className={`${s.card} border rounded-lg p-4`}>
                 <p className="text-xs text-muted-foreground uppercase">{s.label}</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{s.value}</p>
+                <p className={`text-2xl font-bold mt-1 ${s.text}`}>{s.value}</p>
               </motion.div>
             ))}
           </div>
@@ -228,8 +228,8 @@ export default function ParticipantsPage() {
                     </td>
                   </tr>
                 ) : (
-                  paginated.map(p => (
-                    <tr key={p.id} className="border-b border-primary/10 hover:bg-primary/[0.05] transition-colors">
+                  paginated.map((p, i) => (
+                    <tr key={p.id} className={`border-b border-primary/10 hover:bg-primary/[0.05] transition-colors ${i % 2 === 0 ? '' : 'bg-primary/[0.04]'}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">

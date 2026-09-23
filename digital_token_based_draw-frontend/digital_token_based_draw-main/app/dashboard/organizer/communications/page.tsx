@@ -6,13 +6,13 @@ import { Sidebar } from '@/components/Navigation/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Pagination } from '@/components/Pagination';
 import { api, apiUrls } from '@/lib/api';
-import { IconBell, IconMail, IconPhone, IconClipboardList, IconFileText, IconSettings, IconStar, IconClock, IconCheck, IconX } from '@tabler/icons-react';
+import { IconBell, IconMail, IconClipboardList, IconFileText, IconStar, IconClock, IconCheck, IconX } from '@tabler/icons-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Channel = 'in-app' | 'email' | 'sms';
+type Channel = 'in-app' | 'email';
 type MessageType = 'announcement' | 'reminder' | 'winner' | 'confirmation';
-type Tab = 'compose' | 'history' | 'templates' | 'settings';
+type Tab = 'compose' | 'history' | 'templates';
 
 interface Template {
   id: string;
@@ -61,7 +61,7 @@ const mockTemplates: Template[] = [
     type: 'reminder',
     subject: '{{draw_name}} closes in {{days_left}} days',
     body: 'Hi {{first_name}},\n\nThis is a reminder that {{draw_name}} closes on {{close_date}}.\n\nDon\'t miss your chance to enter!\n\n{{org_name}}',
-    channels: ['in-app', 'sms'],
+    channels: ['in-app', 'email'],
   },
   {
     id: 't3',
@@ -77,7 +77,7 @@ const mockTemplates: Template[] = [
     type: 'announcement',
     subject: '{{subject}}',
     body: 'Hi {{first_name}},\n\n{{message_body}}\n\n{{org_name}}',
-    channels: ['in-app', 'email', 'sms'],
+    channels: ['in-app', 'email'],
   },
 ];
 
@@ -86,7 +86,6 @@ const mockTemplates: Template[] = [
 const channelStatuses: ChannelStatus[] = [
   { id: 'in-app', label: 'In-App',      icon: 'bell', connected: true,  detail: 'Platform native — always active' },
   { id: 'email',  label: 'Email (SMTP)', icon: 'mail', connected: true,  detail: 'smtp.sendgrid.net · verified' },
-  { id: 'sms',    label: 'SMS (Twilio)', icon: 'phone', connected: false, detail: 'Not configured — add API key' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,7 +104,6 @@ const typeIcons: Record<MessageType, string> = {
 const channelBadgeColors: Record<Channel, string> = {
   'in-app': 'bg-primary/10 text-primary',
   email:    'bg-blue-500/10 text-blue-500',
-  sms:      'bg-green-500/10 text-green-600',
 };
 
 function pct(a: number, b: number) {
@@ -179,26 +177,6 @@ function ComposePanel({ templates }: { templates: Template[] }) {
           )}
         </AnimatePresence>
 
-        {/* Message type */}
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Message type</label>
-          <div className="flex gap-2 flex-wrap">
-            {(['announcement', 'reminder', 'winner', 'confirmation'] as MessageType[]).map(t => (
-              <button
-                key={t}
-                onClick={() => setMsgType(t)}
-                className={`text-sm px-3 py-1.5 rounded-full border capitalize transition-colors ${
-                  msgType === t
-                    ? `${typeColors[t]} border-current font-semibold`
-                    : 'border-primary/20 text-muted-foreground hover:border-primary/40'
-                }`}
-              >
-                {(() => { const typeIconMap: Record<string, React.ComponentType<any>> = { winner: IconStar, reminder: IconClock, announcement: IconBell, confirmation: IconCheck }; const Ic = typeIconMap[t]; return Ic ? <><Ic size={14} stroke={1.5} /> </> : null; })()} {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Audience */}
         <div>
           <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 block">Audience</label>
@@ -249,7 +227,7 @@ function ComposePanel({ templates }: { templates: Template[] }) {
                     : 'border-primary/20 text-muted-foreground hover:border-primary/40'
                 }`}
               >
-                <span>{(() => { const chIconMap: Record<string, React.ComponentType<any>> = { 'in-app': IconBell, email: IconMail, sms: IconPhone }; const Ic = chIconMap[ch.id]; return Ic ? <Ic size={14} stroke={1.5} /> : null; })()}</span>{ch.label}
+                <span>{(() => { const chIconMap: Record<string, React.ComponentType<any>> = { 'in-app': IconBell, email: IconMail }; const Ic = chIconMap[ch.id]; return Ic ? <Ic size={14} stroke={1.5} /> : null; })()}</span>{ch.label}
                 {!ch.connected && <span className="text-xs">(not set up)</span>}
               </button>
             ))}
@@ -336,8 +314,8 @@ function ComposePanel({ templates }: { templates: Template[] }) {
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Message Templates</h3>
         <div className="space-y-3">
-          {paginatedTemplates.map(t => (
-            <div key={t.id} className="bg-card border border-primary/10 rounded-lg p-4">
+          {paginatedTemplates.map((t, idx) => (
+            <div key={t.id} className={`${idx % 2 === 0 ? 'bg-card border-primary/10' : 'bg-primary/5 border-primary/30'} border rounded-lg p-4`}>
               <div className="flex items-start justify-between mb-2">
                 <span className="text-sm font-semibold text-foreground">{t.name}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${typeColors[t.type]}`}>{typeIcons[t.type]}</span>
@@ -347,7 +325,7 @@ function ComposePanel({ templates }: { templates: Template[] }) {
                 <div className="flex gap-1">
                   {t.channels.map(ch => (
                     <span key={ch} className={`text-xs px-1.5 py-0.5 rounded ${channelBadgeColors[ch]}`}>
-                      {(() => { const chLabelMap: Record<string, string> = { 'in-app': 'In-App', email: 'Email', sms: 'SMS' }; return chLabelMap[ch] || ch; })()}
+                      {(() => { const chLabelMap: Record<string, string> = { 'in-app': 'In-App', email: 'Email' }; return chLabelMap[ch] || ch; })()}
                     </span>
                   ))}
                 </div>
@@ -444,7 +422,9 @@ function HistoryPanel() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.04 }}
-            className="bg-card border border-primary/10 rounded-lg p-5"
+            className={`border rounded-lg p-5 ${
+              idx % 2 === 0 ? 'bg-card border-primary/10' : 'bg-primary/5 border-primary/30'
+            }`}
           >
             <div className="flex items-start gap-4">
                 <span className="text-xl mt-1">{(() => { const typeIconMap: Record<string, React.ComponentType<any>> = { winner: IconStar, reminder: IconClock, announcement: IconBell, confirmation: IconCheck }; const Ic = typeIconMap[entry.type]; return Ic ? <Ic size={20} stroke={1.5} /> : null; })()}</span>
@@ -496,103 +476,6 @@ function HistoryPanel() {
   );
 }
 
-// ─── Settings Panel ───────────────────────────────────────────────────────────
-
-function SettingsPanel() {
-  const [statuses, setStatuses] = useState(channelStatuses);
-  const [smtpHost, setSmtpHost] = useState('smtp.sendgrid.net');
-  const [smtpKey,  setSmtpKey]  = useState('SG.••••••••••••');
-  const [twilioSid, setTwilioSid] = useState('');
-  const [twilioToken, setTwilioToken] = useState('');
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
-
-  return (
-    <div className="max-w-2xl space-y-8">
-      <AnimatePresence>
-        {saved && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-green-700 text-sm"
-          >
-            Settings saved.
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Email */}
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-          <IconMail size={18} stroke={1.5} /> Email (SMTP)
-          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 font-medium">Connected</span>
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">SMTP host</label>
-            <input type="text" value={smtpHost} onChange={e => setSmtpHost(e.target.value)}
-              className="w-full bg-background border border-primary/20 rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">API key</label>
-            <input type="password" value={smtpKey} onChange={e => setSmtpKey(e.target.value)}
-              className="w-full bg-background border border-primary/20 rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-          </div>
-        </div>
-      </div>
-
-      {/* SMS */}
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-          <IconPhone size={18} stroke={1.5} /> SMS (Twilio)
-          <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-600 font-medium">Not configured</span>
-        </h3>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Account SID</label>
-            <input type="text" value={twilioSid} onChange={e => setTwilioSid(e.target.value)} placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              className="w-full bg-background border border-primary/20 rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Auth token</label>
-            <input type="password" value={twilioToken} onChange={e => setTwilioToken(e.target.value)} placeholder="••••••••••••••••"
-              className="w-full bg-background border border-primary/20 rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
-          </div>
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-4">Channel status summary</h3>
-        <div className="space-y-2">
-          {channelStatuses.map(ch => (
-            <div key={ch.id} className={`flex items-center justify-between p-3 rounded-lg border ${
-              ch.connected ? 'bg-green-500/5 border-green-500/20' : 'bg-yellow-500/5 border-yellow-500/20'
-            }`}>
-              <span className="text-sm text-foreground flex items-center gap-2">{(() => { const chIconMap: Record<string, React.ComponentType<any>> = { 'in-app': IconBell, email: IconMail, sms: IconPhone }; const Ic = chIconMap[ch.id]; return Ic ? <Ic size={16} stroke={1.5} /> : null; })()} {ch.label}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground">{ch.detail}</span>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  ch.connected ? 'bg-green-500/10 text-green-600' : 'bg-yellow-500/10 text-yellow-600'
-                }`}>
-                  {ch.connected ? 'Connected' : 'Not configured'}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Button onClick={handleSave} className="bg-primary text-primary-foreground hover:bg-primary/90">
-        Save settings
-      </Button>
-    </div>
-  );
-}
-
 // ─── Template Manager ─────────────────────────────────────────────────────────
 
 function TemplatesPanel({ templates, onUpdate }: { templates: Template[]; onUpdate: (t: Template[]) => void }) {
@@ -639,12 +522,12 @@ function TemplatesPanel({ templates, onUpdate }: { templates: Template[]; onUpda
           </Button>
         </div>
         <div className="space-y-3">
-          {paginatedTemplates.map(t => (
+          {paginatedTemplates.map((t, idx) => (
             <div
               key={t.id}
               onClick={() => setEditing({ ...t })}
               className={`bg-card border rounded-lg p-4 cursor-pointer transition-colors hover:border-primary/30 ${
-                editing?.id === t.id ? 'border-primary/50 bg-primary/5' : 'border-primary/10'
+                editing?.id === t.id ? 'border-primary/50 bg-primary/5' : idx % 2 === 0 ? 'border-primary/10' : 'bg-primary/5 border-primary/30'
               }`}
             >
               <div className="flex items-center justify-between mb-1">
@@ -760,7 +643,6 @@ export default function CommunicationsPage() {
     { id: 'compose',   label: 'Compose',   icon: 'mail' },
     { id: 'history',   label: 'History',   icon: 'clipboardList' },
     { id: 'templates', label: 'Templates', icon: 'fileText' },
-    { id: 'settings',  label: 'Settings',  icon: 'settings' },
   ];
 
   return (
@@ -782,7 +664,7 @@ export default function CommunicationsPage() {
                 <span key={ch.id} className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   ch.connected ? channelBadgeColors[ch.id] : 'bg-muted text-muted-foreground'
                 }`}>
-                  {(() => { const chIconMap: Record<string, React.ComponentType<any>> = { 'in-app': IconBell, email: IconMail, sms: IconPhone }; const Ic = chIconMap[ch.id]; return Ic ? <><Ic size={12} stroke={1.5} /> </> : null; })()} {ch.label} — {ch.connected ? 'active' : 'inactive'}
+                  {(() => { const chIconMap: Record<string, React.ComponentType<any>> = { 'in-app': IconBell, email: IconMail }; const Ic = chIconMap[ch.id]; return Ic ? <><Ic size={12} stroke={1.5} /> </> : null; })()} {ch.label} — {ch.connected ? 'active' : 'inactive'}
                 </span>
               ))}
             </div>
@@ -794,14 +676,14 @@ export default function CommunicationsPage() {
             className="grid grid-cols-4 gap-4"
           >
             {[
-              { label: 'Total sent',    value: history.reduce((a, h) => a + h.recipients, 0) },
-              { label: 'Broadcasts',    value: history.length },
-              { label: 'Avg open rate', value: history.length ? Math.round(history.reduce((a, h) => a + (h.opened / h.recipients), 0) / history.length * 100) + '%' : '0%' },
-              { label: 'Templates',     value: templates.length },
+              { label: 'Total sent',    value: history.reduce((a, h) => a + h.recipients, 0), card: 'bg-card border-primary/10', text: 'text-foreground' },
+              { label: 'Broadcasts',    value: history.length, card: 'bg-[#3BB82E]/10 border-[#3BB82E]/30', text: 'text-[#288C1D]' },
+              { label: 'Avg open rate', value: history.length ? Math.round(history.reduce((a, h) => a + (h.opened / h.recipients), 0) / history.length * 100) + '%' : '0%', card: 'bg-blue-500/10 border-blue-500/30', text: 'text-blue-600' },
+              { label: 'Templates',     value: templates.length, card: 'bg-orange-500/10 border-orange-500/30', text: 'text-orange-600' },
             ].map(s => (
-              <div key={s.label} className="bg-card border border-primary/10 rounded-lg p-4">
+              <div key={s.label} className={`${s.card} border rounded-lg p-4`}>
                 <p className="text-xs text-muted-foreground mb-1">{s.label}</p>
-                <p className="text-2xl font-bold text-foreground">{s.value}</p>
+                <p className={`text-2xl font-bold ${s.text}`}>{s.value}</p>
               </div>
             ))}
           </motion.div>
@@ -819,7 +701,7 @@ export default function CommunicationsPage() {
                       : 'border-transparent text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  {(() => { const tabIconMap: Record<string, React.ComponentType<any>> = { mail: IconMail, clipboardList: IconClipboardList, fileText: IconFileText, settings: IconSettings }; const Ic = tabIconMap[tab.icon]; return Ic ? <><Ic size={16} stroke={1.5} /> </> : null; })()} {tab.label}
+                  {(() => { const tabIconMap: Record<string, React.ComponentType<any>> = { mail: IconMail, clipboardList: IconClipboardList, fileText: IconFileText }; const Ic = tabIconMap[tab.icon]; return Ic ? <><Ic size={16} stroke={1.5} /> </> : null; })()} {tab.label}
                 </button>
               ))}
             </div>
@@ -835,7 +717,6 @@ export default function CommunicationsPage() {
                 {activeTab === 'compose'   && <ComposePanel templates={templates} />}
                 {activeTab === 'history'   && <HistoryPanel />}
                 {activeTab === 'templates' && <TemplatesPanel templates={templates} onUpdate={setTemplates} />}
-                {activeTab === 'settings'  && <SettingsPanel />}
               </motion.div>
             </AnimatePresence>
           </motion.div>

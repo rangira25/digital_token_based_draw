@@ -78,7 +78,7 @@ export function ResultsDisplay({ results, compact = false }: ResultsDisplayProps
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="p-3 bg-card border border-primary/20 rounded text-center space-y-1"
+                className={`p-3 border ${idx % 2 === 0 ? 'bg-card border-primary/20' : 'bg-primary/5 border-primary/30'} rounded text-center space-y-1`}
               >
                 <div className="text-primary font-mono font-bold">{tokenId}</div>
                 <div className="text-xs text-muted-foreground">
@@ -98,7 +98,9 @@ export function ResultsDisplay({ results, compact = false }: ResultsDisplayProps
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="flex justify-between items-center p-2 bg-card/50 border border-primary/10 rounded text-xs font-mono"
+                  className={`flex justify-between items-center p-2 border rounded text-xs font-mono ${
+                    idx % 2 === 0 ? 'bg-card/50 border-primary/10' : 'bg-primary/5 border-primary/30'
+                  }`}
                 >
                   <span>
                     <span className="text-slate-700 font-bold">{result.tokenId}</span>

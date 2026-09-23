@@ -11,6 +11,7 @@ import { api, apiUrls, ApiError } from '@/lib/api';
 import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { IconCash, IconPackage, IconTicket, IconStar, IconKey, IconShieldLock, IconClipboardList, IconPencil, IconReceipt, IconTarget, IconPlayerPlay, IconPlayerStop, IconAtom, IconX, IconClipboard, IconCircleCheck, IconCheck } from '@tabler/icons-react';
 import { Pagination } from '@/components/Pagination';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ interface Draw extends DrawConfig {
   participants: number;
   createdAt: string;
   updatedAt: string;
+  prizePool?: number;
   result?: { executedAt: string; seed: string; winners: { rank: number; name: string; tokenId: string }[] };
   history: { executedAt: string; winnersCount: number }[];
   sourceTemplateId?: string;
@@ -188,8 +190,6 @@ function DrawForm({
   onChange: (c: DrawConfig) => void;
 }) {
   const set = (field: keyof DrawConfig, value: unknown) => onChange({ ...config, [field]: value });
-  const setElig = (field: keyof EligibilityCriteria, value: unknown) =>
-    onChange({ ...config, eligibility: { ...config.eligibility, [field]: value } });
 
   const [tab, setTab] = useState<'basic' | 'entry' | 'prizes' | 'eligibility' | 'rules'>('basic');
 
@@ -197,7 +197,6 @@ function DrawForm({
     { id: 'basic' as const,       label: 'Basic' },
     { id: 'entry' as const,       label: 'Entry' },
     { id: 'prizes' as const,      label: 'Prizes' },
-    { id: 'eligibility' as const, label: 'Eligibility' },
     { id: 'rules' as const,       label: 'Rules' },
   ];
 
@@ -335,9 +334,9 @@ function DrawForm({
                 { value: 'paid',  label: 'Paid Entry',   desc: 'Requires payment' },
               ] as { value: EntryType; label: string; desc: string }[]).map(et => (
                 <button key={et.value} type="button" onClick={() => set('entryType', et.value)}
-                  className={`p-3 rounded-lg border-2 text-left transition-all ${config.entryType === et.value ? 'border-slate-900 bg-slate-900' : 'border-primary/20 hover:border-primary/40'}`}>
-                  <p className="text-xs font-semibold text-white">{et.label}</p>
-                  <p className="text-xs text-white/60 mt-0.5">{et.desc}</p>
+                  className={`p-3 rounded-lg border-2 text-left transition-all ${config.entryType === et.value ? 'border-slate-900 bg-slate-900' : 'border-primary/20 bg-background hover:border-primary/40'}`}>
+                  <p className={`text-xs font-semibold ${config.entryType === et.value ? 'text-white' : 'text-foreground'}`}>{et.label}</p>
+                  <p className={`text-xs ${config.entryType === et.value ? 'text-white/60' : 'text-muted-foreground'} mt-0.5`}>{et.desc}</p>
                 </button>
               ))}
             </div>
@@ -415,48 +414,6 @@ function DrawForm({
               <span className="text-slate-700 font-bold">${config.prizes.reduce((s, p) => s + p.value * p.quantity, 0).toLocaleString()}</span>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Eligibility Tab */}
-      {tab === 'eligibility' && (
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Minimum Age</label>
-            <div className="flex gap-2">
-              {(['all', '18+', '21+'] as AgeGroup[]).map(a => (
-                <button key={a} type="button" onClick={() => setElig('minAge', a)}
-                  className={`px-4 py-2 rounded-lg border text-xs font-medium transition-all ${config.eligibility.minAge === a ? 'border-slate-900 bg-slate-900 text-white' : 'border-primary/20 text-muted-foreground hover:text-foreground'}`}>
-                  {a}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Allowed Regions</label>
-            <Input value={config.eligibility.allowedRegions} onChange={e => setElig('allowedRegions', e.target.value)}
-              placeholder="e.g. Worldwide, US only, EU only…" className="border-primary/20 bg-background text-foreground" />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block">Requirements</label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={config.eligibility.requiresVerifiedId}
-                onChange={e => setElig('requiresVerifiedId', e.target.checked)} className="accent-accent" />
-              <span className="text-sm text-foreground">Verified government ID required</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={config.eligibility.requiresVerifiedEmail}
-                onChange={e => setElig('requiresVerifiedEmail', e.target.checked)} className="accent-accent" />
-              <span className="text-sm text-foreground">Verified email required</span>
-            </label>
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Other Requirements</label>
-            <textarea value={config.eligibility.otherRequirements}
-              onChange={e => setElig('otherRequirements', e.target.value)}
-              rows={2} placeholder="Any additional eligibility criteria…"
-              className="w-full border border-primary/20 bg-background text-foreground rounded-md px-3 py-2 text-sm resize-none focus:outline-none focus:border-slate-400" />
-          </div>
         </div>
       )}
 
@@ -603,6 +560,7 @@ export default function DrawsPage() {
   const [saveSuccess, setSaveSuccess]   = useState(false);
   const [apiError, setApiError]         = useState('');
   const [page, setPage]                 = useState(1);
+  const [reopenToOpen, setReopenToOpen] = useState(false);
   const PAGE_SIZE = 10;
 
   const iconMap: Record<string, React.ComponentType<any>> = {
@@ -644,6 +602,7 @@ export default function DrawsPage() {
           entryLimitPerParticipant: d.max_entries_per_user || 1,
           maxParticipants: d.max_participants || 1000,
           prizes: [],
+          prizePool: d.prize_pool != null ? parseFloat(d.prize_pool) : 0,
           algorithm: 'crypto' as Algorithm,
           allowTies: false,
           eligibility: { minAge: '18+' as AgeGroup, requiresVerifiedId: true, requiresVerifiedEmail: true, allowedRegions: 'Worldwide', otherRequirements: '' },
@@ -677,8 +636,18 @@ export default function DrawsPage() {
     draft:     draws.filter(d => d.status === 'draft').length,
     closed:    draws.filter(d => d.status === 'closed').length,
     completed: draws.filter(d => d.status === 'completed').length,
-    totalPool: draws.reduce((s, d) => s + d.prizes.reduce((ps, p) => ps + p.value * p.quantity, 0), 0),
+    totalPool: draws.reduce((s, d) => s + (d.prizePool ?? d.prizes.reduce((ps, p) => ps + p.value * p.quantity, 0)), 0),
   }), [draws]);
+
+  const prizePoolData = useMemo(() =>
+    draws
+      .map(d => ({
+        name: d.name || 'Untitled',
+        value: d.prizePool ?? d.prizes.reduce((ps, p) => ps + p.value * p.quantity, 0),
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8),
+  [draws]);
 
   function mapDrawStatus(s: string): DrawStatus {
     if (s === 'open') return 'active';
@@ -695,6 +664,7 @@ export default function DrawsPage() {
     setApiError('');
     try {
       if (activeDraw) {
+        const targetStatus = reopenToOpen ? 'open' : formConfig.initialStatus;
         const res = await api<{ success: boolean; data: any }>(
           apiUrls.draws.update(activeDraw.id),
           {
@@ -706,12 +676,12 @@ export default function DrawsPage() {
               max_entries_per_user: formConfig.entryLimitPerParticipant,
               winners_count: formConfig.winnersCount,
               token_price: formConfig.tokenPrice,
-              status: formConfig.initialStatus,
+              status: targetStatus,
               eligibility_notes: formConfig.rules,
             }),
           }
         );
-        setDraws(prev => prev.map(d => d.id === activeDraw.id ? { ...d, ...formConfig, updatedAt: new Date().toISOString().split('T')[0] } : d));
+        setDraws(prev => prev.map(d => d.id === activeDraw.id ? { ...d, ...formConfig, status: reopenToOpen ? 'active' as DrawStatus : d.status, updatedAt: new Date().toISOString().split('T')[0] } : d));
       } else {
         const body: Record<string, any> = {
           title: formConfig.name,
@@ -905,6 +875,44 @@ export default function DrawsPage() {
             ))}
           </motion.div>
 
+          {/* Prize Pool Chart */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}
+            className="bg-card border border-primary/20 rounded-xl p-6 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <IconCash size={18} stroke={1.6} className="text-[#3BB82E]" /> Prize Pool by Draw
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Total prize value across all draws</p>
+              </div>
+              <span className="text-sm font-bold text-[#3BB82E]">${stats.totalPool.toLocaleString()}</span>
+            </div>
+            <div className="h-64">
+              {prizePoolData.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                  No prize data to display yet
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={prizePoolData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} interval={0} />
+                    <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: '1px solid #e5e7eb', fontSize: 12 }}
+                      formatter={(value: number) => [`$${value.toLocaleString()}`, 'Prize Pool']}
+                    />
+                    <Bar dataKey="value" name="Prize Pool" radius={[6, 6, 0, 0]}>
+                      {prizePoolData.map((_, i) => (
+                        <Cell key={i} fill={i === 0 ? '#3BB82E' : '#93c96b'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </motion.div>
+
           {/* Templates bar */}
           {templates.length > 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.08 }}
@@ -959,8 +967,9 @@ export default function DrawsPage() {
                 return (
                   <motion.div key={draw.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }} transition={{ delay: idx * 0.05 }}
-                    className="bg-card border border-primary/20 rounded-xl p-6 space-y-4 border-l-4 hover:shadow-lg hover:shadow-[#3BB82E]/5 hover:border-[#3BB82E]/40 transition-all"
-                    style={{ borderLeftColor: draw.status === 'active' ? '#3BB82E' : draw.status === 'completed' ? '#3BB82E' : draw.status === 'closed' ? '#f59e0b' : '#94a3b8' }}>
+                    className={`border rounded-xl p-6 space-y-4 transition-colors hover:border-primary/40 ${
+                      idx % 2 === 0 ? 'bg-card border-border' : 'bg-primary/5 border-primary/30'
+                    }`}>
 
                     {/* Title row */}
                     <div className="flex items-start justify-between gap-2">
@@ -968,7 +977,7 @@ export default function DrawsPage() {
                         <div className="flex items-center gap-2 flex-wrap mb-1">
                           <StatusBadge status={draw.status} />
                           {draw.testMode && <span className="text-xs bg-yellow-50 text-amber-600 border border-amber-200 px-2 py-0.5 rounded-full">Test</span>}
-                          {draw.entryType === 'paid' && <span className="text-xs bg-[#3BB82E]/10 text-[#3BB82E] border border-[#3BB82E]/30 px-2 py-0.5 rounded-full">Paid</span>}
+                          {draw.entryType === 'paid' && <span className="text-xs bg-slate-100 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-full">Paid</span>}
                         </div>
                         <h3 className="text-lg font-bold text-foreground truncate">{draw.name}</h3>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{draw.description}</p>
@@ -976,7 +985,7 @@ export default function DrawsPage() {
                       {totalPool > 0 && (
                         <div className="text-right shrink-0">
                           <p className="text-xs text-muted-foreground">Prize Pool</p>
-                          <p className="text-lg font-bold text-[#3BB82E]">${totalPool.toLocaleString()}</p>
+                          <p className="text-lg font-bold text-foreground">${totalPool.toLocaleString()}</p>
                         </div>
                       )}
                     </div>
@@ -996,13 +1005,13 @@ export default function DrawsPage() {
                     </div>
 
                     {/* Prize tiers preview */}
-                    <div className="bg-[#f7faf7] rounded-lg p-3 border border-[#3BB82E]/10 space-y-1">
+                    <div className="bg-muted/40 border border-border rounded-lg p-3 space-y-1">
                       {draw.prizes.slice(0, 2).map(tier => (
                         <div key={tier.rank} className="flex items-center gap-2 text-xs">
-                          <span className="text-[#3BB82E]">{categoryIcon[tier.category]}</span>
-                          <span className="text-[#3BB82E] font-medium w-14 shrink-0">{tier.label}</span>
+                          <span className="text-muted-foreground">{categoryIcon[tier.category]}</span>
+                          <span className="text-muted-foreground font-medium w-14 shrink-0">{tier.label}</span>
                           <span className="text-foreground flex-1 truncate">{tier.description}</span>
-                          {tier.value > 0 && <span className="text-[#3BB82E] font-semibold">${tier.value.toLocaleString()}</span>}
+                          {tier.value > 0 && <span className="text-foreground font-semibold">${tier.value.toLocaleString()}</span>}
                         </div>
                       ))}
                       {draw.prizes.length > 2 && <p className="text-xs text-muted-foreground">+{draw.prizes.length - 2} more tiers</p>}
@@ -1015,16 +1024,16 @@ export default function DrawsPage() {
                         <span className="font-mono">{draw.participants.toLocaleString()} / {draw.maxParticipants.toLocaleString()}</span>
                       </div>
                       <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${participantPct === 100 ? 'bg-[#3BB82E]' : 'bg-[#3BB82E]/70'}`} style={{ width: `${participantPct}%` }} />
+                        <div className={`h-full rounded-full transition-all ${participantPct === 100 ? 'bg-slate-500' : 'bg-slate-400/70'}`} style={{ width: `${participantPct}%` }} />
                       </div>
                     </div>
 
                     {/* Entry info */}
-                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground border-t border-primary/10 pt-3">
+                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground border-t border-border pt-3">
                       <AlgorithmBadge algo={draw.algorithm} />
                       <span>·</span>
                       <span>Max {draw.entryLimitPerParticipant} entr{draw.entryLimitPerParticipant > 1 ? 'ies' : 'y'}/person</span>
-                      {draw.entryType === 'paid' && <><span>·</span><span className="text-[#3BB82E] font-semibold">${draw.tokenPrice}/token</span></>}
+                      {draw.entryType === 'paid' && <><span>·</span><span className="text-foreground font-semibold">${draw.tokenPrice}/token</span></>}
                       <span>·</span>
                       <span>{draw.eligibility.minAge}</span>
                     </div>
@@ -1037,7 +1046,7 @@ export default function DrawsPage() {
                           {cfg.nextLabel} →
                         </Button>
                       )}
-                      <Button onClick={() => { setFormConfig({ ...draw }); setActiveDraw(draw); setModal('edit'); }}
+                      <Button onClick={() => { setFormConfig({ ...draw }); setActiveDraw(draw); setReopenToOpen(false); setModal('edit'); }}
                         variant="outline" size="sm" className="border-primary/20 text-xs">
                         Edit
                       </Button>
@@ -1099,6 +1108,29 @@ export default function DrawsPage() {
                   </div>
 
                   <DrawForm config={formConfig} onChange={setFormConfig} />
+
+                  {modal === 'edit' && activeDraw?.status === 'completed' && (
+                    <div className="border border-slate-300 rounded-lg p-4 bg-slate-50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Unmark as Completed</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Re-open this draw so entries are accepted again.</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setReopenToOpen(v => !v)}
+                          className={`relative w-10 h-5 rounded-full transition-all ${reopenToOpen ? 'bg-[#3BB82E]' : 'bg-slate-300'}`}
+                        >
+                          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${reopenToOpen ? 'left-5' : 'left-0.5'}`} />
+                        </button>
+                      </div>
+                      {reopenToOpen && (
+                        <p className="text-xs font-medium text-[#288C1D] flex items-center gap-1">
+                          <IconCheck size={14} stroke={1.5} /> Status will be set back to Open on save.
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {apiError && (
                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-600 text-center">

@@ -89,8 +89,8 @@ export function TokenGrid({ tokens, onDraw, onBack }: TokenGridProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-xs">
-        {tokens.map((token) => (
-          <div key={token.id} className="p-2 bg-card border border-primary/20 rounded text-center font-mono">
+        {tokens.map((token, idx) => (
+          <div key={token.id} className={`p-2 border ${idx % 2 === 0 ? 'bg-card border-primary/20' : 'bg-primary/5 border-primary/30'} rounded text-center font-mono`}>
             <div className="text-primary font-bold">{token.id}</div>
             <div className="text-muted-foreground text-[10px]">
               {token.count} / L:{token.limit}

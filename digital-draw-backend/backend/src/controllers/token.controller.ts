@@ -6,7 +6,7 @@ import { generateTokenCode } from '../utils/tokens';
 
 // ─── Issue Tokens (Organizer → Pool) ──────────────────────────
 export const issueTokens = asyncHandler(async (req: Request, res: Response) => {
-  const { draw_id, quantity = 1, weight = 1 } = req.body;
+  const { draw_id, quantity = 1, weight = 1, expires_in_days } = req.body;
   const client = await getClient();
 
   try {
@@ -29,8 +29,8 @@ export const issueTokens = asyncHandler(async (req: Request, res: Response) => {
     for (let i = 0; i < quantity; i++) {
       const tokenCode = generateTokenCode();
       const tokenResult = await client.query(
-        `INSERT INTO tokens (draw_id, participant_id, token_code, issued_by, weight, status)
-         VALUES ($1, NULL, $2, $3, $4, 'available')
+        `INSERT INTO tokens (draw_id, participant_id, token_code, issued_by, weight, status, expires_at)
+         VALUES ($1, NULL, $2, $3, $4, 'available', ${expires_in_days ? `NOW() + INTERVAL '1 day' * ${parseInt(expires_in_days)}` : 'NULL'})
          RETURNING *`,
         [draw_id, tokenCode, req.user!.userId, weight]
       );

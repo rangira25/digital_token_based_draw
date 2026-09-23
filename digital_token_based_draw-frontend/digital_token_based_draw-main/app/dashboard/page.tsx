@@ -14,7 +14,10 @@ export default function DashboardRouter() {
         router.push('/auth');
       } else {
         // Route to appropriate dashboard based on role
-        const path = user.role === 'organizer' ? '/dashboard/organizer' : '/dashboard/participant';
+        const path =
+        user.role === 'admin' ? '/dashboard/admin' :
+        user.role === 'organizer' ? '/dashboard/organizer' :
+        '/dashboard/participant';
         router.push(path);
       }
     }

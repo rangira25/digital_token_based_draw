@@ -48,89 +48,6 @@ interface Result {
   drawDescription?: string;
 }
 
-const mockResults: Result[] = [
-  {
-    id: 'r1',
-    drawName: 'Community Recognition',
-    organizer: 'OpenSource Foundation',
-    type: 'won',
-    status: 'claimed',
-    prize: '$500 Gift Card',
-    prizeValue: '$500',
-    announcedDate: '2026-05-01',
-    claimedDate: '2026-05-02',
-    certificateAvailable: true,
-    certificateUrl: '/certs/r1.pdf',
-    drawDescription: 'Annual community recognition award for outstanding contributors.',
-    communications: [
-      { id: 'cm1', type: 'email', message: 'Congratulations! You have won the $500 Gift Card in Community Recognition.', timestamp: '2026-05-01T09:00:00Z', fromOrganizer: 'OpenSource Foundation' },
-      { id: 'cm2', type: 'system', message: 'Your prize has been processed and sent to your registered email.', timestamp: '2026-05-02T11:00:00Z', fromOrganizer: 'System' },
-    ],
-    delivery: { method: 'digital', status: 'confirmed', confirmedAt: '2026-05-02', notes: 'Gift card code delivered via email.' },
-  },
-  {
-    id: 'r2',
-    drawName: 'Product Launch Giveaway',
-    organizer: 'TechCorp Inc',
-    type: 'participated',
-    status: 'pending',
-    announcedDate: '2026-05-20',
-    prizeValue: 'Prize Pool: $5000+',
-    drawDescription: 'Exclusive giveaway celebrating the launch of TechCorp\'s newest product line.',
-    certificateAvailable: false,
-    communications: [
-      { id: 'cm3', type: 'email', message: 'Your entry for Product Launch Giveaway has been received.', timestamp: '2026-05-15T08:00:00Z', fromOrganizer: 'TechCorp Inc' },
-    ],
-  },
-  {
-    id: 'r3',
-    drawName: 'Spring Giveaway 2026',
-    organizer: 'Tech Events',
-    type: 'won',
-    status: 'claimed',
-    prize: 'Premium License 1-Year',
-    prizeValue: 'License (~$299)',
-    announcedDate: '2026-04-15',
-    claimedDate: '2026-04-16',
-    certificateAvailable: true,
-    certificateUrl: '/certs/r3.pdf',
-    drawDescription: 'Spring season giveaway for loyal community members.',
-    communications: [
-      { id: 'cm4', type: 'email', message: 'You\'ve won a 1-Year Premium License in Spring Giveaway 2026!', timestamp: '2026-04-15T10:00:00Z', fromOrganizer: 'Tech Events' },
-      { id: 'cm5', type: 'email', message: 'Your license key has been sent. Check your email inbox.', timestamp: '2026-04-16T09:00:00Z', fromOrganizer: 'Tech Events' },
-    ],
-    delivery: { method: 'digital', status: 'confirmed', confirmedAt: '2026-04-16', notes: 'License key emailed successfully.' },
-  },
-  {
-    id: 'r4',
-    drawName: 'Influencer Challenge',
-    organizer: 'Creative Studios',
-    type: 'participated',
-    status: 'lost',
-    announcedDate: '2026-04-10',
-    prizeValue: 'Prize Pool: $2000',
-    drawDescription: 'Creative challenge for social media influencers and content creators.',
-    certificateAvailable: false,
-    communications: [
-      { id: 'cm6', type: 'email', message: 'Thank you for participating in Influencer Challenge. Results have been announced.', timestamp: '2026-04-10T14:00:00Z', fromOrganizer: 'Creative Studios' },
-    ],
-  },
-  {
-    id: 'r5',
-    drawName: 'Beta Tester Selection',
-    organizer: 'DevTools Inc',
-    type: 'upcoming',
-    status: 'pending',
-    announcedDate: '2026-05-30',
-    prizeValue: 'Lifetime Access',
-    drawDescription: 'Exclusive selection for beta testers of DevTools\'s next-gen product.',
-    certificateAvailable: false,
-    communications: [
-      { id: 'cm7', type: 'system', message: 'Your entry for Beta Tester Selection is confirmed. Draw on 2026-05-30.', timestamp: '2026-05-16T08:00:00Z', fromOrganizer: 'System' },
-    ],
-  },
-];
-
 type FilterType = 'all' | 'won' | 'participated' | 'upcoming';
 
 function CertificateModal({ result, onClose }: { result: Result; onClose: () => void }) {
@@ -215,16 +132,16 @@ function ResultDetailDrawer({ result, onClose, onClaim }: {
           {/* Status badges */}
           <div className="flex flex-wrap gap-2">
             <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-              result.type === 'won' ? 'bg-slate-100 text-slate-700' :
+              result.type === 'won' ? 'bg-green-500/20 text-green-600' :
               result.type === 'participated' ? 'bg-primary/20 text-primary' :
               'bg-blue-500/20 text-blue-400'
             }`}>
               {result.type === 'won' && <IconStar size={12} stroke={2} />}{result.type.charAt(0).toUpperCase() + result.type.slice(1)}
             </span>
             <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-              result.status === 'claimed' ? 'bg-primary/20 text-primary' :
-              result.status === 'won' ? 'bg-slate-100 text-slate-700' :
-              result.status === 'lost' ? 'bg-muted text-muted-foreground' :
+              result.status === 'claimed' ? 'bg-green-500/20 text-green-600' :
+              result.status === 'won' ? 'bg-green-500/20 text-green-600' :
+              result.status === 'lost' ? 'bg-orange-500/20 text-orange-600' :
               'bg-blue-500/20 text-blue-400'
             }`}>
               {result.status === 'claimed' ? <IconCheck size={12} stroke={2} /> : result.status === 'won' ? <IconStar size={12} stroke={2} /> : result.status === 'lost' ? <IconX size={12} stroke={2} /> : <IconClock size={12} stroke={2} />}
@@ -420,6 +337,13 @@ export default function ResultsPage() {
     { label: 'Pending', value: results.filter(r => r.status === 'pending').length, icon: 'clock' },
   ];
 
+  const statColors = [
+    { bg: 'bg-card border-primary/20', value: 'text-slate-700' },
+    { bg: 'bg-green-500/10 border-green-500/30', value: 'text-green-600' },
+    { bg: 'bg-blue-500/10 border-blue-500/30', value: 'text-blue-600' },
+    { bg: 'bg-orange-500/10 border-orange-500/30', value: 'text-orange-600' },
+  ];
+
   const handleClaim = async (id: string) => {
     // No-op: prizes are automatically credited when the draw is executed
   };
@@ -444,13 +368,13 @@ export default function ResultsPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                className="bg-card border border-primary/20 rounded-lg p-4 space-y-2"
+                className={`border rounded-lg p-4 space-y-2 ${statColors[idx].bg}`}
               >
                 <div className="flex items-center justify-between">
                   <p className="text-muted-foreground text-sm">{stat.label}</p>
-                  <span className="text-xl text-muted-foreground">{(() => { const Ic = iconMap[stat.icon]; return Ic ? <Ic size={20} stroke={1.5} /> : null; })()}</span>
+                  <span className={`text-xl ${statColors[idx].value}`}>{(() => { const Ic = iconMap[stat.icon]; return Ic ? <Ic size={20} stroke={1.5} /> : null; })()}</span>
                 </div>
-                <p className="text-3xl font-bold text-slate-700">{stat.value}</p>
+                <p className={`text-3xl font-bold ${statColors[idx].value}`}>{stat.value}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -485,10 +409,10 @@ export default function ResultsPage() {
                 transition={{ delay: 0.3 + idx * 0.05 }}
                 className={`border rounded-lg p-6 transition-all duration-300 cursor-pointer ${
                   result.status === 'won' || result.status === 'claimed'
-                    ? 'bg-slate-50 border-slate-200 hover:border-slate-300'
+                    ? 'bg-green-500/5 border-green-500/30 hover:bg-green-500/10 hover:border-green-500/60 hover:shadow-md hover:-translate-y-0.5'
                     : result.status === 'lost'
-                      ? 'bg-background border-primary/10 hover:border-primary/20'
-                      : 'bg-primary/5 border-primary/30 hover:border-primary/50'
+                      ? 'bg-orange-500/5 border-orange-500/30 hover:bg-orange-500/10 hover:border-orange-500/60 hover:shadow-md hover:-translate-y-0.5'
+                      : 'bg-primary/5 border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:shadow-md hover:-translate-y-0.5'
                 }`}
                 onClick={() => setSelectedResult(result)}
               >
@@ -502,16 +426,16 @@ export default function ResultsPage() {
 
                     <div className="flex flex-wrap gap-2">
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                        result.type === 'won' ? 'bg-slate-100 text-slate-700' :
+                        result.type === 'won' ? 'bg-green-500/20 text-green-600' :
                         result.type === 'participated' ? 'bg-primary/20 text-primary' :
                         'bg-blue-500/20 text-blue-400'
                       }`}>
                         {result.type === 'won' && <IconStar size={12} stroke={2} />}{result.type.charAt(0).toUpperCase() + result.type.slice(1)}
                       </span>
                       <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                        result.status === 'claimed' ? 'bg-primary/20 text-primary' :
-                        result.status === 'won' ? 'bg-slate-100 text-slate-700' :
-                        result.status === 'lost' ? 'bg-muted text-muted-foreground' :
+                        result.status === 'claimed' ? 'bg-green-500/20 text-green-600' :
+                        result.status === 'won' ? 'bg-green-500/20 text-green-600' :
+                        result.status === 'lost' ? 'bg-orange-500/20 text-orange-600' :
                         'bg-blue-500/20 text-blue-400'
                       }`}>
                         {result.status === 'claimed' ? <><IconCheck size={12} stroke={2} /> </> : result.status === 'won' ? <><IconStar size={12} stroke={2} /> </> : result.status === 'lost' ? <><IconX size={12} stroke={2} /> </> : <><IconClock size={12} stroke={2} /> </>}

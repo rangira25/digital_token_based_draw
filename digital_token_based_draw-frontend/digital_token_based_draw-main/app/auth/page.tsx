@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { useAuth, type UserRole, type RegisterData } from '@/contexts/AuthContext';
+import { api, apiUrls } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,7 +19,6 @@ import {
   IconFileText,
   IconPaperclip,
   IconTicket,
-  IconStar,
 } from '@tabler/icons-react';
 
 type VerificationStatus = 'idle' | 'pending' | 'verified' | 'rejected';
@@ -209,9 +209,19 @@ export default function AuthPage() {
     e.preventDefault();
     if (!recoveryEmail) { setError('Enter your email'); return; }
     setIsLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    setRecoveryEmailSent(true);
-    setIsLoading(false);
+    setError('');
+    try {
+      await api<{ success: boolean }>(
+        apiUrls.auth.forgotPassword,
+        { method: 'POST', body: JSON.stringify({ email: recoveryEmail }) },
+        true
+      );
+      setRecoveryEmailSent(true);
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset link. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const pwStrength = getPasswordStrength(formData.password);
@@ -373,38 +383,7 @@ export default function AuthPage() {
               The fairest way to run raffles people love.
             </h2>
             <p className="text-white/80 text-lg">
-              Host a draw or enter to win — powered by fair, independent, cryptographically sealed tokens.
-            </p>
-          </div>
-          <div className="space-y-3">
-            {[
-              { icon: IconCheck, text: 'Verify every draw with independent audits' },
-              { icon: IconShieldLock, text: 'Multi-factor security and identity checks' },
-              { icon: IconClock, text: 'Real-time results and instant notifications' },
-            ].map(b => (
-              <div key={b.text} className="flex items-center gap-3 text-sm text-white/90">
-                <span className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center shrink-0">
-                  <b.icon size={16} stroke={2} />
-                </span>
-                {b.text}
-              </div>
-            ))}
-          </div>
-          <div className="bg-white/10 rounded-2xl p-5 space-y-3 backdrop-blur">
-            <div className="flex items-center gap-2">
-              <span className="w-10 h-10 rounded-full bg-white/85 text-primary flex items-center justify-center text-xs font-bold">SP</span>
-              <div>
-                <p className="text-sm font-semibold">Sarah Pajak</p>
-                <p className="text-xs text-white/70">Coca-Cola</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <IconStar key={i} size={15} stroke={1.5} className="text-amber-300 fill-amber-300" />
-              ))}
-            </div>
-            <p className="text-sm text-white/85 leading-relaxed">
-              &quot;Digital Draws helped us engage customers in a fun and interactive way while driving revenue and brand loyalty.&quot;
+              Host a draw or enter to win  powered by fair, independent, cryptographically sealed tokens.
             </p>
           </div>
         </div>

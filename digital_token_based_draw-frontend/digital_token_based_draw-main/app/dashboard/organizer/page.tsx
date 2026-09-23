@@ -97,10 +97,10 @@ export default function OrganizerDashboard() {
   }, [a.tokens]);
 
   const stats = [
-    { label: 'Total Draws', value: drawStats.total_draws ?? draws.length, icon: IconDiamond, tint: 'bg-[#3BB82E]/10 text-[#288C1D]' },
-    { label: 'Active Draws', value: drawStats.active_draws ?? draws.filter((d: any) => d.status === 'open').length, icon: IconBolt, tint: 'bg-emerald-50 text-emerald-600' },
-    { label: 'Total Entries', value: a.entries?.total_entries ?? 0, icon: IconUsers, tint: 'bg-violet-50 text-violet-600' },
-    { label: 'Active Tokens', value: a.tokens?.active_tokens ?? 0, icon: IconTicket, tint: 'bg-sky-50 text-sky-600' },
+    { label: 'Total Draws', value: drawStats.total_draws ?? draws.length, icon: IconDiamond, tint: 'bg-[#3BB82E]/10 text-[#288C1D]', card: 'bg-card border-primary/20', valueColor: 'text-[#288C1D]' },
+    { label: 'Active Draws', value: drawStats.active_draws ?? draws.filter((d: any) => d.status === 'open').length, icon: IconBolt, tint: 'bg-emerald-50 text-emerald-600', card: 'bg-emerald-500/10 border-emerald-500/30', valueColor: 'text-emerald-600' },
+    { label: 'Total Entries', value: a.entries?.total_entries ?? 0, icon: IconUsers, tint: 'bg-violet-50 text-violet-600', card: 'bg-blue-500/10 border-blue-500/30', valueColor: 'text-blue-600' },
+    { label: 'Active Tokens', value: a.tokens?.active_tokens ?? 0, icon: IconTicket, tint: 'bg-sky-50 text-sky-600', card: 'bg-orange-500/10 border-orange-500/30', valueColor: 'text-orange-600' },
   ];
 
   if (authLoading || loading) {
@@ -135,7 +135,7 @@ export default function OrganizerDashboard() {
             {stats.map((stat, idx) => (
               <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.08 }}
-                className="bg-card border border-primary/15 rounded-xl p-5 space-y-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative">
+                className={`${stat.card} rounded-xl p-5 space-y-3 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 overflow-hidden relative`}>
                 <div className="absolute -top-6 -right-6 w-20 h-20 rounded-full bg-[#3BB82E]/5" />
                 <div className="flex items-center justify-between">
                   <p className="text-muted-foreground text-sm">{stat.label}</p>
@@ -143,7 +143,7 @@ export default function OrganizerDashboard() {
                     <stat.icon size={18} stroke={1.6} />
                   </span>
                 </div>
-                <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                <p className={`text-3xl font-bold ${stat.valueColor}`}>{stat.value}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -240,7 +240,9 @@ export default function OrganizerDashboard() {
                     <motion.div key={draw.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.4 + idx * 0.05 }}
                       onClick={() => router.push(`/dashboard/organizer/draws/${draw.id}`)}
-                      className="p-4 bg-background border border-primary/15 rounded-xl hover:border-primary/40 cursor-pointer transition-all duration-300 group flex items-center gap-4">
+                      className={`p-4 border rounded-xl hover:border-primary/40 cursor-pointer transition-all duration-300 group flex items-center gap-4 ${
+                        idx % 2 === 0 ? 'bg-background border-primary/15' : 'bg-primary/5 border-primary/30'
+                      }`}>
                       <div className={`w-11 h-11 rounded-xl shrink-0 flex items-center justify-center ${
                         draw.status === 'open' ? 'bg-[#3BB82E]/15 text-[#288C1D]'
                         : draw.status === 'completed' ? 'bg-violet-50 text-violet-600'

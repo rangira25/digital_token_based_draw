@@ -4,6 +4,7 @@ import {
   register, login, verifyEmail, refreshToken, logout,
   forgotPassword, resetPassword, setup2FA, verify2FA,
   disable2FA, getMe, updateProfile, changePassword, topUpBalance,
+  verifyLogin2FA, resend2FA,
 } from '../controllers/auth.controller';
 import { authenticate, authorize } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
@@ -61,6 +62,22 @@ router.post('/reset-password', [
 router.post('/2fa/setup', authenticate, authorize('organizer', 'admin'), setup2FA);
 router.post('/2fa/verify', authenticate, authorize('organizer', 'admin'), verify2FA);
 router.post('/2fa/disable', authenticate, authorize('organizer', 'admin'), disable2FA);
+
+// Email 2FA — finish login with emailed code, or resend a new code
+router.post('/2fa/verify-login', [
+  body('email').isEmail().normalizeEmail(),
+  body('otp_code').isLength({ min: 6, max: 6 }).isNumeric(),
+  body('recaptcha_token').notEmpty(),
+  validateRequest,
+  recaptchaMiddleware,
+], verifyLogin2FA);
+
+router.post('/2fa/resend', [
+  body('email').isEmail().normalizeEmail(),
+  body('recaptcha_token').notEmpty(),
+  validateRequest,
+  recaptchaMiddleware,
+], resend2FA);
 
 // Password
 router.post('/change-password', authenticate, [

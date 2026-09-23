@@ -401,7 +401,7 @@ function WinnerDetailDrawer({ winner, onClose, onMarkClaimed, onVerify, onSendNo
             <div className="flex items-center gap-3">
               <div className={`w-2 h-2 rounded-full ${winner.notified ? 'bg-primary' : 'bg-muted-foreground'}`} />
               <div>
-                <p className="text-xs font-medium">{winner.notified ? 'Notified' : 'Not Yet Notified'}</p>
+                <p className="text-xs font-medium">{winner.notified ? 'Notified' : 'Delivered'}</p>
                 {winner.notifiedAt && (
                   <p className="text-xs text-muted-foreground font-mono">{new Date(winner.notifiedAt).toLocaleString()}</p>
                 )}
@@ -440,18 +440,18 @@ function Analytics({ winners }: { winners: Winner[] }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Prize Value', value: `$${totalPrizeValue.toLocaleString()}`, icon: 'coin' },
-          { label: 'Claim Rate', value: `${claimRate}%`, icon: 'chart-bar' },
-          { label: 'Notification Rate', value: `${notifRate}%`, icon: 'mail' },
-          { label: 'Delivery Confirmed', value: `${deliveryConfirmed}/${winners.length}`, icon: 'package' },
+{[ 
+          { label: 'Total Prize Value', value: `$${totalPrizeValue.toLocaleString()}`, icon: 'coin', card: 'bg-card border-primary/20', text: 'text-foreground' },
+          { label: 'Claim Rate', value: `${claimRate}%`, icon: 'chart-bar', card: 'bg-[#3BB82E]/10 border-[#3BB82E]/30', text: 'text-[#288C1D]' },
+          { label: 'Notification Rate', value: `${notifRate}%`, icon: 'mail', card: 'bg-blue-500/10 border-blue-500/30', text: 'text-blue-600' },
+          { label: 'Delivery Confirmed', value: `${deliveryConfirmed}/${winners.length}`, icon: 'package', card: 'bg-orange-500/10 border-orange-500/30', text: 'text-orange-600' },
         ].map(stat => (
-          <div key={stat.label} className="bg-card border border-primary/20 rounded-lg p-4">
+          <div key={stat.label} className={`${stat.card} border rounded-lg p-4`}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs text-muted-foreground">{stat.label}</p>
               <span>{(() => { const Ic = iconMap[stat.icon]; return Ic ? <Ic size={18} stroke={1.5} /> : null; })()}</span>
             </div>
-            <p className="text-2xl font-bold text-primary">{stat.value}</p>
+            <p className={`text-2xl font-bold ${stat.text}`}>{stat.value}</p>
           </div>
         ))}
       </div>
@@ -620,10 +620,10 @@ export default function WinnersPage() {
   useEffect(() => { setPage(1); }, [filterStatus]);
 
   const stats = [
-    { label: 'Total Winners', value: winners.length, icon: 'star' },
-    { label: 'Pending Claims', value: winners.filter(w => w.status === 'pending').length, icon: 'clock' },
-    { label: 'Claimed', value: winners.filter(w => w.status === 'claimed').length, icon: 'check' },
-    { label: 'Verified', value: winners.filter(w => w.status === 'verified').length, icon: 'check' },
+    { label: 'Total Winners', value: winners.length, icon: 'star', card: 'bg-card border-primary/20', text: 'text-foreground' },
+    { label: 'Pending Claims', value: winners.filter(w => w.status === 'pending').length, icon: 'clock', card: 'bg-orange-500/10 border-orange-500/30', text: 'text-orange-600' },
+    { label: 'Claimed', value: winners.filter(w => w.status === 'claimed').length, icon: 'check', card: 'bg-blue-500/10 border-blue-500/30', text: 'text-blue-600' },
+    { label: 'Verified', value: winners.filter(w => w.status === 'verified').length, icon: 'check', card: 'bg-[#3BB82E]/10 border-[#3BB82E]/30', text: 'text-[#288C1D]' },
   ];
 
   const handleMarkClaimed = async (id: string) => {
@@ -701,13 +701,13 @@ export default function WinnersPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                className="bg-card border border-primary/20 rounded-lg p-4 space-y-2"
+                className={`${stat.card} border rounded-lg p-4 space-y-2`}
               >
                 <div className="flex items-center justify-between">
                   <p className="text-muted-foreground text-sm">{stat.label}</p>
                   <span className="text-xl text-muted-foreground">{(() => { const Ic = iconMap[stat.icon]; return Ic ? <Ic size={20} stroke={1.5} /> : null; })()}</span>
                 </div>
-                <p className="text-3xl font-bold text-primary">{stat.value}</p>
+                <p className={`text-3xl font-bold ${stat.text}`}>{stat.value}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -733,21 +733,6 @@ export default function WinnersPage() {
           <AnimatePresence mode="wait">
             {activeTab === 'list' && (
               <motion.div key="list" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-                {/* Filter */}
-                <div className="flex gap-2">
-                  {(['all', 'pending', 'claimed', 'verified'] as FilterStatus[]).map(status => (
-                    <Button
-                      key={status}
-                      onClick={() => setFilterStatus(status)}
-                      variant={filterStatus === status ? 'default' : 'outline'}
-                      className={filterStatus === status ? 'bg-primary text-primary-foreground' : 'border-primary/20'}
-                      size="sm"
-                    >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Button>
-                  ))}
-                </div>
-
                 {/* Winners List */}
                 <div className="space-y-4">
                   {paginatedWinners.map((winner, idx) => (
@@ -756,7 +741,9 @@ export default function WinnersPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="bg-card border border-primary/20 rounded-lg p-6 hover:border-primary/40 transition-colors cursor-pointer"
+                      className={`border rounded-lg p-6 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md transition-all cursor-pointer ${
+                        idx % 2 === 0 ? 'bg-card border-primary/20' : 'bg-primary/5 border-primary/30'
+                      }`}
                       onClick={() => setSelectedWinner(winner)}
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -799,43 +786,26 @@ export default function WinnersPage() {
                           </div>
 
                           <div className="flex flex-wrap gap-2">
-                            <span className={`text-xs px-2 py-1 rounded ${winner.notified ? 'bg-blue-500/20 text-blue-400' : 'bg-muted text-muted-foreground'}`}>
-                              {winner.notified ? <><IconMail size={12} stroke={1.5} /> Notified</> : <><IconMail size={12} stroke={1.5} /> Not Notified</>}
-                            </span>
-                            <span className={`text-xs px-2 py-1 rounded ${winner.certificateGenerated ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                              {winner.certificateGenerated ? <><IconTrophy size={12} stroke={1.5} /> Cert Ready</> : <><IconTrophy size={12} stroke={1.5} /> No Cert</>}
-                            </span>
-                            <span className={`text-xs px-2 py-1 rounded ${
-                              winner.delivery.status === 'confirmed' ? 'bg-primary/20 text-primary' :
-                              winner.delivery.status === 'delivered' ? 'bg-primary/20 text-primary' :
-                              winner.delivery.status === 'shipped' ? 'bg-blue-500/20 text-blue-400' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
-                              <IconPackage size={12} stroke={1.5} /> {winner.delivery.status.charAt(0).toUpperCase() + winner.delivery.status.slice(1)}
+                            {winner.notified && (
+                              <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">
+                                <IconMail size={12} stroke={1.5} /> Notified
+                              </span>
+                            )}
+                            {winner.certificateGenerated && (
+                              <span className="text-xs px-2 py-1 rounded bg-primary/20 text-primary">
+                                <IconTrophy size={12} stroke={1.5} /> Cert Ready
+                              </span>
+                            )}
+                            <span className="text-xs px-2 py-1 rounded bg-primary/20 text-primary">
+                              <IconPackage size={12} stroke={1.5} /> Delivered
                             </span>
                           </div>
 
                           <div className="flex gap-2 pt-1" onClick={e => e.stopPropagation()}>
-                            {winner.status === 'pending' && (
-                              <>
-                                <Button onClick={() => handleMarkClaimed(winner.id)} className="flex-1 bg-primary/20 text-primary hover:bg-slate-200" variant="outline" size="sm">
-                                  Mark Claimed
-                                </Button>
-                                <Button onClick={() => handleVerifyWinner(winner.id)} className="flex-1 bg-primary/20 text-primary hover:bg-primary/30" variant="outline" size="sm">
-                                  Verify Now
-                                </Button>
-                              </>
-                            )}
-                            {winner.status === 'claimed' && (
-                              <Button onClick={() => handleVerifyWinner(winner.id)} className="flex-1 bg-primary/20 text-primary hover:bg-primary/30" variant="outline" size="sm">
-                                Verify
-                              </Button>
-                            )}
-                            {winner.status === 'verified' && (
-                              <div className="flex-1 flex items-center justify-center py-2 bg-primary/10 rounded text-xs text-primary font-medium">
-                                <IconCircleCheck size={12} stroke={2} /> Verified
-                              </div>
-                            )}
+                            <div className="flex-1 flex items-center justify-center py-2 bg-primary/10 rounded text-xs text-primary font-medium">
+                              <IconCircleCheck size={12} stroke={2} />
+                              {winner.status === 'pending' ? 'Delivered' : winner.status.charAt(0).toUpperCase() + winner.status.slice(1)}
+                            </div>
                           </div>
                         </div>
                       </div>

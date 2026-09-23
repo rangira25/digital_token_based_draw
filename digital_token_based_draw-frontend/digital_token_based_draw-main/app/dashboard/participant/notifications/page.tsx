@@ -542,7 +542,7 @@ export default function NotificationsPage() {
                         transition={{ delay: idx * 0.04 }}
                         className={`border rounded-lg p-5 transition-all duration-300 ${
                           notif.read
-                            ? 'bg-card border-primary/10 opacity-80'
+                            ? (idx % 2 === 0 ? 'bg-card border-primary/10 opacity-80' : 'bg-primary/5 border-primary/20 opacity-80')
                             : `${cfg.color} border-2`
                         }`}
                       >

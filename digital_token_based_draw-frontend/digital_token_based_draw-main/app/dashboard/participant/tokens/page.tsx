@@ -35,6 +35,7 @@ export default function MyTokensPage() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 10;
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,6 +86,13 @@ export default function MyTokensPage() {
     navigator.clipboard.writeText(code);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleCopyAll = () => {
+    if (filtered.length === 0) return;
+    navigator.clipboard.writeText(filtered.map(t => t.tokenCode).join('\n'));
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
   };
 
   const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
@@ -146,6 +154,12 @@ export default function MyTokensPage() {
                 className="bg-slate-800 text-white hover:bg-slate-700">
                 Buy Tokens
               </Button>
+              <Button onClick={handleCopyAll}
+                disabled={filtered.length === 0}
+                className="bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20">
+                {copiedAll ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                {copiedAll ? 'Copied All' : 'Copy All Codes'}
+              </Button>
             </div>
             <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
               {(['all', 'issued', 'used', 'expired', 'revoked'] as StatusFilter[]).map(f => (
@@ -168,7 +182,9 @@ export default function MyTokensPage() {
                 return (
                   <motion.div key={token.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 10 }} transition={{ delay: idx * 0.03 }}
-                    className="bg-card border border-primary/20 rounded-lg p-4 hover:border-primary/40 transition-colors">
+                    className={`border rounded-lg p-4 hover:border-primary/60 hover:bg-primary/5 hover:shadow-md transition-all ${
+                      idx % 2 === 0 ? 'bg-card border-primary/20' : 'bg-primary/5 border-primary/30'
+                    }`}>
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4 flex-1 min-w-0">
                         {/* Token Code */}

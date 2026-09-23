@@ -111,7 +111,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="space-y-1">
         <h2 className="text-2xl font-bold text-primary">Draw</h2>
-        <p className="text-xs text-muted-foreground">v2.1 System</p>
+         
       </div>
 
       {/* User Info */}

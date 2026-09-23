@@ -55,6 +55,26 @@ export const sendPasswordResetEmail = async (
   });
 };
 
+export const sendLogin2FACode = async (
+  to: string,
+  name: string,
+  code: string
+): Promise<void> => {
+  await transporter.sendMail({
+    from,
+    to,
+    subject: 'Your verification code – Digital Draw System',
+    html: `
+      <h2>Verify it's you</h2>
+      <p>Hi ${name}, use the 6-digit code below to finish signing in to your account.</p>
+      <p style="font-size:32px;letter-spacing:8px;font-weight:bold;background:#f3f4f6;padding:16px 24px;border-radius:8px;text-align:center;color:#111827;">
+        ${code}
+      </p>
+      <p>This code expires in 10 minutes. If you didn't try to sign in, you can ignore this email.</p>
+    `,
+  });
+};
+
 export const sendWinnerNotification = async (
   to: string,
   name: string,

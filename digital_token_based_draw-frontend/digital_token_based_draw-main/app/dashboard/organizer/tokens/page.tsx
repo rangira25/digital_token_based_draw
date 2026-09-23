@@ -10,13 +10,13 @@ import { Pagination } from '@/components/Pagination';
 import { api, apiUrls } from '@/lib/api';
 import { exportExcel, exportPDF, type ExportColumn } from '@/lib/export';
 import { Sidebar } from '@/components/Navigation/Sidebar';
-import { IconAlertTriangle, IconCheck, IconCircleCheck, IconX } from '@tabler/icons-react';
+import { IconCheck, IconCircleCheck, IconX } from '@tabler/icons-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type TokenFormat = 'numeric' | 'alphanumeric' | 'qr';
+type TokenFormat = 'numeric' | 'alphanumeric';
 type TokenStatus = 'active' | 'used' | 'expired' | 'revoked';
-type ModalView = 'generate' | 'validate' | 'history' | 'regenerate' | null;
+type ModalView = 'generate' | 'validate' | 'history' | null;
 
 interface Token {
   id: string;
@@ -82,28 +82,12 @@ function FormatBadge({ format }: { format: TokenFormat }) {
   const styles: Record<TokenFormat, string> = {
     numeric:      'bg-slate-100 text-slate-700 border-slate-200',
     alphanumeric: 'bg-primary/20 text-primary border-primary/30',
-    qr:           'bg-purple-500/20 text-purple-400 border-purple-500/30',
   };
-  const icons: Record<TokenFormat, string> = { numeric: '#', alphanumeric: 'Aa', qr: '▣' };
+  const icons: Record<TokenFormat, string> = { numeric: '#', alphanumeric: 'Aa' };
   return (
     <span className={`px-2 py-0.5 rounded text-xs font-mono border ${styles[format]}`}>
       {icons[format]} {format}
     </span>
-  );
-}
-
-function QRDisplay({ value }: { value: string }) {
-  return (
-    <div className="inline-flex flex-col items-center gap-1 p-2 bg-white rounded">
-      {Array.from({ length: 7 }, (_, r) => (
-        <div key={r} className="flex gap-0.5">
-          {Array.from({ length: 7 }, (_, c) => {
-            const seed = (value.charCodeAt((r * 7 + c) % value.length) + r + c) % 2;
-            return <div key={c} className={`w-2.5 h-2.5 ${seed ? 'bg-black' : 'bg-white'}`} />;
-          })}
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -171,7 +155,7 @@ export default function TokensPage() {
                         t.status === 'used' ? 'used' :
                         t.status === 'expired' ? 'expired' :
                         t.status === 'revoked' ? 'revoked' : 'active') as TokenStatus,
-                createdDate: t.created_at?.split('T')[0] || '',
+                createdDate: t.issued_at?.split('T')[0] || '',
                 usedDate: t.used_at?.split('T')[0] || undefined,
                 expiryDate: t.expires_at?.split('T')[0] || '',
               });
@@ -245,6 +229,7 @@ export default function TokensPage() {
           draw_id: genDrawId,
           quantity: count,
           weight: 1,
+          expires_in_days: parseInt(genExpiry) || 30,
         }),
       });
       // Re-fetch tokens for this draw
@@ -261,7 +246,7 @@ export default function TokensPage() {
         status: (t.status === 'issued' || t.status === 'active' || t.status === 'available' ? 'active' :
                 t.status === 'used' ? 'used' :
                 t.status === 'expired' ? 'expired' : 'revoked') as TokenStatus,
-        createdDate: t.created_at?.split('T')[0] || '',
+        createdDate: t.issued_at?.split('T')[0] || '',
         usedDate: t.used_at?.split('T')[0] || undefined,
         expiryDate: t.expires_at?.split('T')[0] || '',
       }));
@@ -279,60 +264,6 @@ export default function TokensPage() {
       setApiError(err.message);
     }
   }, [genDrawId, genParticipantId, genFormat, genCount, genExpiry, existingIds, draws, participants]);
-
-  const handleRevoke = useCallback(async (code: string) => {
-    setApiError('');
-    try {
-      await api(apiUrls.tokens.revoke(code), { method: 'PATCH' });
-      setTokens(prev => prev.map(t => t.id === code ? { ...t, status: 'revoked' as TokenStatus } : t));
-    } catch (err: any) {
-      setApiError(err.message);
-    }
-  }, []);
-
-  const handleRegenerate = useCallback(async () => {
-    if (!selectedToken) return;
-    setApiError('');
-    try {
-      await api(apiUrls.tokens.revoke(selectedToken.id), { method: 'PATCH' });
-      if (selectedToken.drawId && selectedToken.participantId) {
-        await api(apiUrls.tokens.issue, {
-          method: 'POST',
-          body: JSON.stringify({
-            draw_id: selectedToken.drawId,
-            participant_id: selectedToken.participantId,
-            quantity: 1,
-            weight: 1,
-          }),
-        });
-      }
-      const tokensRes = await api<{ success: boolean; data: any[] }>(apiUrls.tokens.drawTokens(selectedToken.drawId));
-      const newTokens: Token[] = (tokensRes.data || []).map((t: any) => ({
-        id: t.id,
-        tokenCode: t.token_code || t.id,
-        drawId: selectedToken.drawId,
-        drawName: selectedToken.drawName,
-        participantId: t.participant_id || '',
-        participantName: t.participant_name || t.holder_name || 'In Pool',
-        participantEmail: t.participant_email || 'Available for claiming',
-        format: (t.token_code?.length > 8 ? 'alphanumeric' : 'numeric') as TokenFormat,
-        status: (t.status === 'issued' || t.status === 'active' || t.status === 'available' ? 'active' :
-                t.status === 'used' ? 'used' :
-                t.status === 'expired' ? 'expired' : 'revoked') as TokenStatus,
-        createdDate: t.created_at?.split('T')[0] || '',
-        usedDate: t.used_at?.split('T')[0] || undefined,
-        expiryDate: t.expires_at?.split('T')[0] || '',
-      }));
-      setTokens(prev => {
-        const filtered = prev.filter(t => t.drawId !== selectedToken.drawId);
-        return [...newTokens, ...filtered];
-      });
-      setModal(null);
-      setSelectedToken(null);
-    } catch (err: any) {
-      setApiError(err.message);
-    }
-  }, [selectedToken]);
 
   const handleValidate = useCallback(async () => {
     const code = validateInput.trim();
@@ -406,7 +337,7 @@ export default function TokensPage() {
             </Button>
             <Button
               onClick={() => { setModal('generate'); setGenPreview([]); setGenSuccess(false); }}
-              className="bg-slate-800 text-white hover:bg-slate-700"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               + Generate Tokens
             </Button>
@@ -469,7 +400,7 @@ export default function TokensPage() {
               ))}
             </div>
             <div className="flex gap-1 bg-muted rounded-lg p-1">
-              {(['all', 'numeric', 'alphanumeric', 'qr'] as const).map(f => (
+              {(['all', 'numeric', 'alphanumeric'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFormatFilter(f)}
@@ -527,14 +458,11 @@ export default function TokensPage() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       transition={{ delay: idx * 0.03 }}
-                      className="hover:bg-muted/50 transition-colors"
+                      className={`transition-colors hover:bg-primary/5 ${idx % 2 === 0 ? 'bg-transparent' : 'bg-primary/[0.04]'}`}
                     >
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm text-slate-700 font-bold">{token.tokenCode}</span>
-                          {token.regeneratedFrom && (
-                            <span className="text-xs text-muted-foreground" title={`Regenerated from ${token.regeneratedFrom}`}>↻</span>
-                          )}
                         </div>
                       </td>
                       <td className="px-5 py-3"><FormatBadge format={token.format} /></td>
@@ -554,24 +482,6 @@ export default function TokensPage() {
                           >
                             History
                           </button>
-                          {token.status === 'active' && (
-                            <>
-                              <span className="text-primary/20">|</span>
-                              <button
-                                onClick={() => { setSelectedToken(token); setModal('regenerate'); }}
-                                className="text-xs text-slate-700 hover:text-slate-600 font-mono transition-colors"
-                              >
-                                Regen
-                              </button>
-                              <span className="text-primary/20">|</span>
-                              <button
-                                onClick={() => handleRevoke(token.id)}
-                                className="text-xs text-red-400 hover:text-red-300 font-mono transition-colors"
-                              >
-                                Revoke
-                              </button>
-                            </>
-                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -642,8 +552,8 @@ export default function TokensPage() {
 
                     <div className="space-y-1.5">
                       <label className="block text-sm font-medium text-foreground">Token Format</label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {(['numeric', 'alphanumeric', 'qr'] as const).map(f => (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {(['numeric', 'alphanumeric'] as const).map(f => (
                           <button
                             key={f}
                             onClick={() => { setGenFormat(f); setGenPreview([]); }}
@@ -653,14 +563,13 @@ export default function TokensPage() {
                                 : 'border-primary/20 text-muted-foreground hover:border-primary/40'
                             }`}
                           >
-                            {f === 'numeric' ? '# Numeric' : f === 'alphanumeric' ? 'Aa Alpha' : '▣ QR Code'}
+                            {f === 'numeric' ? '# Numeric' : 'Aa Alpha'}
                           </button>
                         ))}
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {genFormat === 'numeric'      ? '8-digit numeric code (e.g. TK-83912847)' :
-                         genFormat === 'alphanumeric' ? '8-char alphanumeric, no O/0/I/1 (e.g. TK-ABCD3F72)' :
-                                                        'QR-encoded token for scanning'}
+                                                       '8-char alphanumeric, no O/0/I/1 (e.g. TK-ABCD3F72)'}
                       </p>
                     </div>
 
@@ -829,11 +738,6 @@ export default function TokensPage() {
                         <StatusBadge status={selectedToken.status} />
                       </div>
                     </div>
-                    {selectedToken.format === 'qr' && (
-                      <div className="pt-2 flex justify-center">
-                        <QRDisplay value={selectedToken.id} />
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -860,43 +764,6 @@ export default function TokensPage() {
                   <Button onClick={() => setModal(null)} variant="outline" className="w-full border-primary/20">
                     Close
                   </Button>
-                </div>
-              )}
-
-              {/* ─── Regenerate Modal ─── */}
-              {modal === 'regenerate' && selectedToken && (
-                <div className="p-6 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-foreground">Regenerate Token</h2>
-                      <p className="text-sm text-muted-foreground">Issue a new token if the original was lost</p>
-                    </div>
-                    <button onClick={() => setModal(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">×</button>
-                  </div>
-
-                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 space-y-1">
-                    <p className="text-amber-400 text-sm font-bold flex items-center gap-1"><IconAlertTriangle size={14} stroke={1.5} /> Destructive Action</p>
-                    <p className="text-amber-400/80 text-xs">
-                      The current token <span className="font-mono">{selectedToken.id}</span> will be
-                      revoked and a new token will be issued to {selectedToken.participantName}.
-                    </p>
-                  </div>
-
-                  <div className="bg-muted/50 border border-primary/20 rounded-lg p-4 text-sm space-y-1">
-                    <p className="text-muted-foreground">Participant: <span className="text-foreground font-medium">{selectedToken.participantName}</span></p>
-                    <p className="text-muted-foreground">Draw: <span className="text-foreground font-medium">{selectedToken.drawName}</span></p>
-                    <p className="text-muted-foreground">Format: <span className="text-foreground font-medium capitalize">{selectedToken.format}</span></p>
-                    <p className="text-muted-foreground">Expiry kept as: <span className="text-foreground font-mono">{selectedToken.expiryDate}</span></p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button onClick={() => setModal(null)} variant="outline" className="flex-1 border-primary/20">
-                      Cancel
-                    </Button>
-                    <Button onClick={handleRegenerate} className="flex-1 bg-amber-500/80 text-white hover:bg-amber-500">
-                      Confirm Regeneration
-                    </Button>
-                  </div>
                 </div>
               )}
 

@@ -46,6 +46,7 @@ interface AuthContextType {
   loginAttempts: LoginAttempt[];
   login: (email: string, password: string, role: UserRole, recaptchaToken?: string) => Promise<{ requires2FA: boolean }>;
   verify2FA: (code: string, recaptchaToken?: string) => Promise<void>;
+  resend2FA: (recaptchaToken?: string) => Promise<void>;
   register: (data: RegisterData, recaptchaToken?: string) => Promise<void>;
   logout: () => void;
   switchRole: (role: UserRole) => void;
@@ -217,10 +218,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!pendingUser) throw new Error('No pending authentication');
 
     try {
-      const body: Record<string, any> = { email: pendingUser.email, password: '', totp_code: code };
+      const body: Record<string, any> = { email: pendingUser.email, otp_code: code };
       if (recaptchaToken) body.recaptcha_token = recaptchaToken;
       const res = await api<{ success: boolean; data: { accessToken: string; refreshToken: string; user: any } }>(
-        apiUrls.auth.login,
+        apiUrls.auth.verifyLogin2FA,
         { method: 'POST', body: JSON.stringify(body) },
         true
       );
@@ -237,6 +238,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err: any) {
       throw err;
     }
+  };
+
+  const resend2FA = async (recaptchaToken?: string) => {
+    if (!pendingUser) throw new Error('No pending authentication');
+
+    const body: Record<string, any> = { email: pendingUser.email };
+    if (recaptchaToken) body.recaptcha_token = recaptchaToken;
+    await api<{ success: boolean }>(
+      apiUrls.auth.resend2FA,
+      { method: 'POST', body: JSON.stringify(body) },
+      true
+    );
   };
 
   const register = async (data: RegisterData, recaptchaToken?: string) => {
@@ -290,6 +303,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginAttempts,
       login,
       verify2FA,
+      resend2FA,
       register,
       logout,
       switchRole,

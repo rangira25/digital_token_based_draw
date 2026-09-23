@@ -10,7 +10,7 @@ import { IconShieldLock } from '@tabler/icons-react';
 
 export default function TwoFactorVerifyPage() {
   const router = useRouter();
-  const { pendingUser, user, verify2FA, logout, isLoading: authLoading } = useAuth();
+  const { pendingUser, user, verify2FA, resend2FA, logout, isLoading: authLoading } = useAuth();
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -99,12 +99,22 @@ export default function TwoFactorVerifyPage() {
 };
 
   const handleResend = async () => {
+    if (!recaptchaToken) { setError('Please complete the reCAPTCHA verification'); return; }
     setResendCooldown(60);
     setError('');
-    setCode(['', '', '', '', '', '']);
-    inputRefs.current[0]?.focus();
-    // In real app: trigger new code send
-    console.log('[Mock] New 2FA code sent');
+    setIsLoading(true);
+    try {
+      await resend2FA(recaptchaToken);
+      setCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code');
+      setResendCooldown(0);
+    } finally {
+      setIsLoading(false);
+      recaptchaRef.current?.reset();
+      setRecaptchaToken('');
+    }
   };
 
   const handleCancel = () => {
@@ -214,7 +224,8 @@ export default function TwoFactorVerifyPage() {
             ) : (
               <button
                 onClick={handleResend}
-                className="text-sm text-primary hover:text-primary/80 transition-colors"
+                disabled={isLoading}
+                className="text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
               >
                 Didn't receive a code? Resend
               </button>
@@ -228,10 +239,6 @@ export default function TwoFactorVerifyPage() {
           >
             ← Back to Login
           </button>
-
-          <p className="text-xs text-muted-foreground text-center">
-            Demo code: <span className="font-mono text-primary">123456</span>
-          </p>
         </div>
       </motion.div>
     </div>

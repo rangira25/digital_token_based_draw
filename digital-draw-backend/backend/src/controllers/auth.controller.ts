@@ -6,8 +6,14 @@ import qrcode from 'qrcode';
 import { query } from '../config/database';
 import { AppError, asyncHandler } from '../middleware/error';
 import { createAuditLog } from '../services/audit.service';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../services/email.service';
+import { sendVerificationEmail, sendPasswordResetEmail, sendLogin2FACode } from '../services/email.service';
 import { generateSecureToken } from '../utils/tokens';
+
+const EMAIL_2FA_TTL_MS = 10 * 60 * 1000;
+const EMAIL_2FA_MAX_ATTEMPTS = 5;
+
+const generateEmail2FACode = () =>
+  Math.floor(100000 + Math.random() * 900000).toString();
 
 const signAccessToken = (userId: string, email: string, role: string) =>
   jwt.sign({ userId, email, role }, process.env.JWT_SECRET!, {
@@ -139,19 +145,86 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw new AppError('Your account has been suspended', 403);
   }
 
-  // 2FA check for organizers
-  if (user.totp_enabled) {
-    if (!totp_code) {
-      res.status(200).json({ success: true, requires2FA: true });
+  // Email-based 2FA for organizers and admins
+  if (user.role === 'organizer' || user.role === 'admin') {
+    const code = (totp_code || '').toString().trim();
+
+    if (!code) {
+      const otp = generateEmail2FACode();
+      const otpHash = await bcrypt.hash(otp, 10);
+      const expires = new Date(Date.now() + EMAIL_2FA_TTL_MS);
+      await query(
+        `UPDATE users
+         SET email_2fa_code = $1, email_2fa_expires = $2, email_2fa_attempts = 0
+         WHERE id = $3`,
+        [otpHash, expires, user.id]
+      );
+      await sendLogin2FACode(user.email, user.full_name, otp)
+        .catch((err) => console.error('[EmailService] Failed to send 2FA code:', err));
+
+      await createAuditLog({
+        actorId: user.id,
+        action: '2fa_enabled',
+        entityType: 'user',
+        entityId: user.id,
+        description: `2FA code sent to ${user.email}`,
+        ipAddress: req.ip ?? undefined,
+        userAgent: req.headers['user-agent'] as string | undefined,
+      });
+
+      res.status(200).json({
+        success: true,
+        requires2FA: true,
+        data: { email: user.email },
+      });
       return;
     }
-    const verified = speakeasy.totp.verify({
-      secret: user.totp_secret,
-      encoding: 'base32',
-      token: totp_code,
-      window: 1,
+
+    // Verify the emailed code
+    const pending = await query(
+      'SELECT email_2fa_code, email_2fa_expires, email_2fa_attempts FROM users WHERE id = $1',
+      [user.id]
+    );
+    const { email_2fa_code: otpHash, email_2fa_expires: otpExpires, email_2fa_attempts: otpAttempts } = pending.rows[0];
+
+    if (!otpHash || !otpExpires) {
+      throw new AppError('No verification code in progress. Please sign in again.', 401);
+    }
+    if (new Date(otpExpires) < new Date()) {
+      await query('UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0 WHERE id = $1', [user.id]);
+      throw new AppError('Verification code expired. Please sign in again.', 401);
+    }
+    if (otpAttempts >= EMAIL_2FA_MAX_ATTEMPTS) {
+      await query('UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0 WHERE id = $1', [user.id]);
+      throw new AppError('Too many failed attempts. Please sign in again for a new code.', 401);
+    }
+
+    const codeValid = await bcrypt.compare(code, otpHash);
+    if (!codeValid) {
+      const nextAttempts = otpAttempts + 1;
+      if (nextAttempts >= EMAIL_2FA_MAX_ATTEMPTS) {
+        await query('UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0 WHERE id = $1', [user.id]);
+      } else {
+        await query('UPDATE users SET email_2fa_attempts = $1 WHERE id = $2', [nextAttempts, user.id]);
+      }
+      throw new AppError('Invalid verification code', 401);
+    }
+
+    // Code verified — clear it
+    await query(
+      'UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0 WHERE id = $1',
+      [user.id]
+    );
+
+    await createAuditLog({
+      actorId: user.id,
+      action: '2fa_enabled',
+      entityType: 'user',
+      entityId: user.id,
+      description: `2FA code verified for ${user.email}`,
+      ipAddress: req.ip ?? undefined,
+      userAgent: req.headers['user-agent'] as string | undefined,
     });
-    if (!verified) throw new AppError('Invalid 2FA code', 401);
   }
 
   // Reset login attempts, update last login
@@ -202,6 +275,141 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       },
     },
   });
+});
+
+// ─── Verify Email 2FA (finish login) ─────────────────────────
+export const verifyLogin2FA = asyncHandler(async (req: Request, res: Response) => {
+  const { email, otp_code } = req.body;
+  if (!email || !otp_code) throw new AppError('Email and verification code required', 400);
+
+  const result = await query(
+    `SELECT id, email, password_hash, role, status, full_name,
+            phone, national_id, profile_image_url, company_name,
+            organizer_license, login_attempts, locked_until,
+            email_verified, created_at, balance,
+            email_2fa_code, email_2fa_expires, email_2fa_attempts
+     FROM users WHERE email = $1 AND deleted_at IS NULL`,
+    [email.toLowerCase()]
+  );
+
+  const user = result.rows[0];
+  if (!user || (user.role !== 'organizer' && user.role !== 'admin')) {
+    throw new AppError('Invalid verification session', 401);
+  }
+
+  if (user.locked_until && new Date(user.locked_until) > new Date()) {
+    throw new AppError('Account temporarily locked due to failed login attempts', 423);
+  }
+
+  if (user.status === 'suspended' || user.status === 'banned') {
+    throw new AppError('Your account has been suspended', 403);
+  }
+
+  const { email_2fa_code: otpHash, email_2fa_expires: otpExpires, email_2fa_attempts: otpAttempts } = user;
+
+  if (!otpHash || !otpExpires) {
+    throw new AppError('No verification code in progress. Please sign in again.', 401);
+  }
+  if (new Date(otpExpires) < new Date()) {
+    await query('UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0 WHERE id = $1', [user.id]);
+    throw new AppError('Verification code expired. Please sign in again.', 401);
+  }
+  if (otpAttempts >= EMAIL_2FA_MAX_ATTEMPTS) {
+    await query('UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0 WHERE id = $1', [user.id]);
+    throw new AppError('Too many failed attempts. Please sign in again for a new code.', 401);
+  }
+
+  const code = otp_code.toString().trim();
+  const codeValid = await bcrypt.compare(code, otpHash);
+  if (!codeValid) {
+    const nextAttempts = otpAttempts + 1;
+    if (nextAttempts >= EMAIL_2FA_MAX_ATTEMPTS) {
+      await query('UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0 WHERE id = $1', [user.id]);
+    } else {
+      await query('UPDATE users SET email_2fa_attempts = $1 WHERE id = $2', [nextAttempts, user.id]);
+    }
+    throw new AppError('Invalid verification code', 401);
+  }
+
+  // Success — clear the used code and finish login
+  await query(
+    `UPDATE users SET email_2fa_code = NULL, email_2fa_expires = NULL, email_2fa_attempts = 0,
+     login_attempts = 0, locked_until = NULL, last_login_at = NOW(), last_login_ip = $1
+     WHERE id = $2`,
+    [req.ip, user.id]
+  );
+
+  const accessToken = signAccessToken(user.id, user.email, user.role);
+  const refreshToken = signRefreshToken(user.id);
+
+  const refreshExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  await query(
+    `INSERT INTO refresh_tokens (user_id, token, expires_at, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [user.id, refreshToken, refreshExpiry, req.ip, req.headers['user-agent'] as string | undefined]
+  );
+
+  await createAuditLog({
+    actorId: user.id,
+    action: 'user_login',
+    entityType: 'user',
+    entityId: user.id,
+    description: `User logged in with 2FA: ${user.email}`,
+    ipAddress: req.ip ?? undefined,
+    userAgent: req.headers['user-agent'] as string | undefined,
+  });
+
+  res.json({
+    success: true,
+    data: {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        full_name: user.full_name,
+        phone: user.phone,
+        national_id: user.national_id,
+        profile_image_url: user.profile_image_url,
+        company_name: user.company_name,
+        organizer_license: user.organizer_license,
+        created_at: user.created_at,
+        totp_enabled: false,
+        balance: user.balance,
+      },
+    },
+  });
+});
+
+// ─── Resend Email 2FA Code ────────────────────────────────────
+export const resend2FA = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  const result = await query(
+    `SELECT id, email, full_name, role, email_2fa_code, email_2fa_expires
+     FROM users WHERE email = $1 AND deleted_at IS NULL`,
+    [email.toLowerCase()]
+  );
+
+  // Only resend when a login 2FA session is in progress (recaptcha already validated)
+  const user = result.rows[0];
+  if (user && (user.role === 'organizer' || user.role === 'admin') && user.email_2fa_code && user.email_2fa_expires) {
+    const otp = generateEmail2FACode();
+    const otpHash = await bcrypt.hash(otp, 10);
+    const expires = new Date(Date.now() + EMAIL_2FA_TTL_MS);
+    await query(
+      `UPDATE users
+       SET email_2fa_code = $1, email_2fa_expires = $2, email_2fa_attempts = 0
+       WHERE id = $3`,
+      [otpHash, expires, user.id]
+    );
+    await sendLogin2FACode(user.email, user.full_name, otp)
+      .catch((err) => console.error('[EmailService] Failed to resend 2FA code:', err));
+  }
+
+  // Always respond success to avoid email enumeration
+  res.json({ success: true, message: 'If a sign-in is in progress, a new code has been sent' });
 });
 
 // ─── Refresh Token ────────────────────────────────────────────
@@ -271,7 +479,8 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response) =
       'UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE id = $3',
       [token, expiry, result.rows[0].id]
     );
-    await sendPasswordResetEmail(email, result.rows[0].full_name, token).catch(() => {});
+    await sendPasswordResetEmail(email, result.rows[0].full_name, token)
+      .catch((err) => console.error('[EmailService] Failed to send password reset email:', err));
   }
 
   res.json({ success: true, message: 'If that email exists, a reset link has been sent' });

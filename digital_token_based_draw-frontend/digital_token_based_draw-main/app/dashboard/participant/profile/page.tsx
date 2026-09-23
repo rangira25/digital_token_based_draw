@@ -249,7 +249,7 @@ export default function ProfilePage() {
                 <IconPlus size={14} stroke={2} /> Top Up
               </Button>
             </div>
-            <div className="bg-card border border-primary/20 rounded-lg p-6 space-y-4">
+            <div className="bg-muted border border-primary/20 rounded-lg p-6 space-y-4">
               <h3 className="font-bold text-foreground">Verification Timeline</h3>
               <div className="space-y-4 text-sm">
                 <div className="flex gap-3">
@@ -280,12 +280,6 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-muted border border-primary/20 rounded-lg p-6 space-y-4">
-              <h3 className="font-bold text-foreground">Document Verification</h3>
-              <p className="text-sm text-muted-foreground">Your ID is valid for 2 years. You will be notified before expiration.</p>
-              <Button variant="outline" className="w-full">Upload New ID</Button>
             </div>
           </motion.div>
         </div>

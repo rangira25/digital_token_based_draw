@@ -37,7 +37,8 @@ export const listDraws = asyncHandler(async (req: Request, res: Response) => {
     `SELECT d.*,
             u.full_name AS organizer_name,
             (SELECT COUNT(*) FROM draw_entries de WHERE de.draw_id = d.id AND de.status = 'active') AS entry_count,
-            (SELECT COUNT(*) FROM prizes p WHERE p.draw_id = d.id) AS prize_count
+            (SELECT COUNT(*) FROM prizes p WHERE p.draw_id = d.id) AS prize_count,
+            (SELECT COALESCE(SUM(p.value * p.quantity), 0) FROM prizes p WHERE p.draw_id = d.id) AS prize_pool
      FROM draws d
      JOIN users u ON d.organizer_id = u.id
      ${whereClause}

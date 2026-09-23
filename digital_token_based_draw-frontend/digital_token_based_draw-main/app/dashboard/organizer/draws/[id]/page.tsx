@@ -226,7 +226,7 @@ export default function DrawDetailPage() {
               <h2 className="text-sm font-semibold text-foreground mb-4">Prizes</h2>
               <div className="space-y-3">
                 {draw.prizes.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 bg-background border border-primary/10 rounded-lg">
+                  <div key={i} className={`flex items-center justify-between p-3 border rounded-lg ${i % 2 === 0 ? 'bg-background border-primary/10' : 'bg-primary/5 border-primary/30'}`}>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold text-primary">#{p.rank}</span>
                       <div>
